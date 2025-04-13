@@ -18,6 +18,8 @@ const GridComponent: React.FC = () => {
 	const { selectedDiscipline, decrementPair, incrementPair } =
 		useSelectedPairStore()
 
+	console.log(selectedDiscipline)
+
 	// Подтягиваем список аудиторий (для назначения кабинета)
 	const {
 		data: rooms = [],
@@ -59,40 +61,61 @@ const GridComponent: React.FC = () => {
 			}
 
 			// Проверяем, остались ли пары (и онлайн-пары, если надо)
-			if (selectedDiscipline.totalPairs <= 0) {
-				message.warning('У дисциплины не осталось свободных пар.')
-				return
-			}
 
-			if (isOnline && selectedDiscipline.onlinePossible <= 0) {
-				message.warning('У дисциплины не осталось онлайн-пар.')
-				return
-			}
+			console.log(selectedDiscipline)
+			console.log(isOnline, selectedDiscipline.onlinePossible)
 
 			const key = `${day}-${hour}`
+			const oldCell = selectedCells[weekKey][key]
+			const isEditing =
+				oldCell && oldCell.disciplineId === selectedDiscipline.id
 
+			if (!isEditing) {
+				// Если пара ставится впервые, проверяем наличие свободной пары и (для онлайн) свободной онлайн-пары
+				if (selectedDiscipline.totalPairs <= 0) {
+					message.warning('У дисциплины не осталось свободных пар.')
+					return
+				}
+				if (isOnline && selectedDiscipline.onlinePossible <= 0) {
+					message.warning('У дисциплины не осталось онлайн-пар.')
+					return
+				}
+			} else {
+				// Редактирование уже вставленной пары
+				// При конверсии с офлайн в онлайн проверяем наличие online-пар
+				if (
+					isOnline &&
+					!oldCell!.isOnline &&
+					selectedDiscipline.onlinePossible <= 0
+				) {
+					message.warning('У дисциплины не осталось онлайн-пар.')
+					return
+				}
+				// Для других вариантов редактирования (например, онлайн → офлайн или без изменения типа)
+				// не требуется дополнительно проверять свободные пары
+			}
+
+			// Обновляем состояние ячейки расписания
 			setSelectedCells(prev => {
 				const copy = { ...prev[weekKey] }
 
-				// Если в этой ячейке уже что-то есть – можно решить, как поступать.
-				// Здесь перезапишем, а старую пару вернём «обратно».
-				const oldCell = copy[key]
-				if (oldCell && oldCell.disciplineId) {
-					// Возвращаем ту пару в store
-					incrementPair(oldCell.disciplineId, !!oldCell.isOnline)
+				// Если ячейка уже занята выбранной дисциплиной
+				// и мы изменяем тип пары, возвращаем старую пару в счетчики
+				if (isEditing && oldCell && oldCell.isOnline !== isOnline) {
+					incrementPair(oldCell.disciplineId, oldCell.isOnline)
 				}
 
 				copy[key] = {
 					disciplineId: selectedDiscipline.id,
 					discipline: `${selectedDiscipline.disciplineName} (${selectedDiscipline.type})`,
 					isOnline,
-					room: '', // пока пустая, можно будет назначить позже
+					room: '', // пока оставляем пустым, можно назначить позже
 				}
 
 				return { ...prev, [weekKey]: copy }
 			})
 
-			// Уменьшаем кол-во пар в zustand
+			// Обновляем состояние дисциплины: уменьшаем нужный счётчик согласно новому назначению
 			decrementPair(selectedDiscipline.id, isOnline)
 		},
 		[selectedDiscipline, decrementPair, incrementPair, weekKey]

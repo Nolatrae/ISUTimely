@@ -153,6 +153,7 @@ export function Constructor() {
 							!error &&
 							disciplines.map(disc => {
 								const isActive = selectedDiscipline?.id === disc.id
+								console.log(disciplines[0].totalPairs)
 								return (
 									<Card
 										key={disc.id}

@@ -1,0 +1,194 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id         String  @id @default(cuid())
+  login      String  @unique
+  firstName  String
+  middleName String?
+  lastName   String
+
+  password     String
+  tempPassword String?
+
+  rights  Role[]   @default([USER])
+  Teacher Teacher?
+}
+
+enum Role {
+  USER
+  TEACHER
+  ADMIN
+}
+
+model Teacher {
+  id           String                        @id @default(uuid())
+  position     Position                      @relation(fields: [positionId], references: [id])
+  department   Department                    @relation(fields: [departmentId], references: [id])
+  user         User                          @relation(fields: [userId], references: [id])
+  userId       String                        @unique
+  departmentId String
+  positionId   String
+  textWishId   String?                       @unique
+  textWish     TextWish?
+  ScheduleWish ScheduleWish[]
+  assignments  TeacherDisciplineAssignment[] @relation("TeacherDisciplineAssignments")
+}
+
+model TeacherDisciplineAssignment {
+  id             String        @id @default(cuid())
+  discipline     String // Название дисциплины
+  type           String // Например, "lecture" или "practice"
+  teachers       Teacher[]     @relation("TeacherDisciplineAssignments")
+  audienceType   AudienceType? @relation(fields: [audienceTypeId], references: [id])
+  audienceTypeId String? // Внешний ключ для типа аудитории
+
+  @@unique([discipline, type], name: "discipline_type")
+}
+
+// Модель для глобального текстового пожелания
+model TextWish {
+  id        String  @id @default(cuid())
+  teacherId String  @unique
+  teacher   Teacher @relation(fields: [teacherId], references: [id]) // Оставляем @relation только здесь
+  wishText  String?
+}
+
+model Position {
+  id       String    @id @default(uuid())
+  title    String    @unique
+  teachers Teacher[]
+}
+
+model Department {
+  id       String    @id @default(uuid())
+  title    String
+  teachers Teacher[]
+}
+
+model Audience {
+  id             String              @id @default(uuid())
+  title          String
+  type           AudienceType        @relation(fields: [audienceTypeId], references: [id])
+  building       Building            @relation(fields: [buildingId], references: [id])
+  capacity       Int
+  additionalInfo String?
+  equipment      AudienceEquipment[] // Используем таблицу-связку
+  buildingId     String
+  audienceTypeId String
+}
+
+model Equipment {
+  id        String              @id @default(uuid())
+  title     String
+  audiences AudienceEquipment[] // Используем таблицу-связку
+}
+
+model AudienceEquipment {
+  id          String    @id @default(uuid())
+  audienceId  String
+  equipmentId String
+  audience    Audience  @relation(fields: [audienceId], references: [id])
+  equipment   Equipment @relation(fields: [equipmentId], references: [id])
+
+  @@unique([audienceId, equipmentId]) // Уникальная связь, предотвращающая дублирование
+}
+
+model Building {
+  id       String     @id @default(uuid())
+  title    String
+  Audience Audience[]
+}
+
+model AudienceType {
+  id                          String                        @id @default(uuid())
+  title                       String
+  Audience                    Audience[]
+  TeacherDisciplineAssignment TeacherDisciplineAssignment[]
+}
+
+model ScheduleWish {
+  id         String   @id @default(cuid())
+  weekType   String
+  day        String
+  timeSlot   String
+  discipline String?
+  room       String?
+  createdAt  DateTime @default(now())
+  teacherId  String?
+  teacher    Teacher? @relation(fields: [teacherId], references: [id])
+}
+
+model UploadedFiles {
+  id        String   @id @default(uuid())
+  filename  String
+  path      String
+  createdAt DateTime @default(now())
+}
+
+model StudyPlan {
+  id           String         @id @default(cuid())
+  title        String
+  disciplines  Discipline[]
+  groups       Group[]
+  SemesterWeek SemesterWeek[]
+}
+
+model SemesterWeek {
+  id          String    @id @default(cuid())
+  week_1      Int
+  week_2      Int
+  week_3      Int
+  week_4      Int
+  week_5      Int
+  week_6      Int
+  week_7      Int
+  week_8      Int
+  studyPlanId String
+  studyPlan   StudyPlan @relation(fields: [studyPlanId], references: [id])
+}
+
+model Group {
+  id             String     @id @default(cuid())
+  title          String     @unique
+  code           String?
+  countStudents  String     @map("count_students")
+  direction      String?
+  formEducation  String?
+  durationPeriod Int?
+  yearEnrollment DateTime?  @map("year_enrollment")
+  studyPlanId    String?
+  studyPlan      StudyPlan? @relation(fields: [studyPlanId], references: [id])
+
+  disciplineAssignments DisciplineGroupAssignment[] @relation("GroupAssignments") // Обратная связь
+
+  @@index([studyPlanId], map: "study_plan_idx")
+}
+
+model Discipline {
+  id                  String    @id @default(cuid())
+  name                String
+  semester            Int
+  lecture_hours       Int?
+  el_lecture_hours    Int?
+  laboratory_hours    Int?
+  el_laboratory_hours Int?
+  practice_hours      Int?
+  el_practice_hours   Int?
+  control             String?
+  studyPlanId         String
+  studyPlan           StudyPlan @relation(fields: [studyPlanId], references: [id])
+}
+
+model DisciplineGroupAssignment {
+  id         String  @id @default(cuid()) // Уникальный ID
+  discipline String // Название дисциплины
+  groups     Group[] @relation("GroupAssignments") // Массив групп
+  semester   Int // Семестр
+}

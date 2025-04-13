@@ -194,9 +194,9 @@ const GridComponent: React.FC = () => {
 
 	// Условная кнопка «Сохранить»
 	const handleSave = useCallback(() => {
-		// Здесь можно отправить selectedCells на бэкенд
+		console.log('Сохранение расписания:', selectedCells)
 		message.success('Расписание сохранено (пример)')
-	}, [])
+	}, [selectedCells])
 
 	return (
 		<div>

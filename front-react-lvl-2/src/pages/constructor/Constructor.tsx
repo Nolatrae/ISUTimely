@@ -1,7 +1,7 @@
 import { disciplineService } from '@/services/disciplines/discipline.service'
 import { useSelectedPairStore } from '@/store/selectedPairStore'
 import { useQuery } from '@tanstack/react-query'
-import { Card, Collapse, List, Splitter } from 'antd'
+import { Card, Splitter } from 'antd'
 import { useEffect } from 'react'
 import { v4 as uuidv4 } from 'uuid'
 
@@ -137,6 +137,31 @@ export function Constructor() {
 		setDisciplines(generated)
 	}, [disciplinesData, setDisciplines])
 
+	// Запрос на получение дисциплин
+	const {
+		data: disciplinesWishes,
+		isLoading: isDisciplineLoading,
+		error: disciplineError,
+	} = useQuery({
+		queryKey: ['disciplines'],
+		queryFn: () =>
+			disciplineService.getTeacherPairs('f59fa491-baa0-4af8-8588-4b213ffafc05'),
+	})
+
+	console.log(disciplinesWishes)
+
+	const {
+		data: disciplinesText,
+		isLoading: isTextLoading,
+		error: textError,
+	} = useQuery({
+		queryKey: ['text'],
+		queryFn: () =>
+			disciplineService.getTeacherText('f59fa491-baa0-4af8-8588-4b213ffafc05'),
+	})
+
+	console.log(disciplinesWishes, disciplinesText)
+
 	return (
 		<div className='h-screen'>
 			<Splitter
@@ -183,53 +208,42 @@ export function Constructor() {
 				{/* Панель 3: пожелания преподавателей */}
 				<Splitter.Panel>
 					<div className='h-full overflow-auto p-4'>
-						<h3>Пожелания всех преподавателей</h3>
-						{isLoadingWishes && <p>Загрузка пожеланий...</p>}
-						{errorWishes && (
-							<p style={{ color: 'red' }}>Ошибка загрузки пожеланий</p>
-						)}
-						{!isLoadingWishes && !errorWishes && (
-							<List
-								bordered
-								dataSource={teacherWishesArray}
-								renderItem={(item: any) => (
-									<List.Item>
-										<div>
-											<p>
-												Преподаватель:{' '}
-												{item.teacher?.userId || item.teacherId || 'Неизвестно'}
-											</p>
-											{item.schedule && item.schedule.length > 0 && (
-												<div>
-													<p>Расписание:</p>
-													<List
-														bordered
-														dataSource={item.schedule}
-														renderItem={(wish: any) => (
-															<List.Item>
-																<p>
-																	{wish.day} – {wish.timeSlot}
-																	{wish.discipline
-																		? ` (${wish.discipline})`
-																		: ''}
-																	{wish.room ? ` в ауд. ${wish.room}` : ''}
-																</p>
-															</List.Item>
-														)}
-													/>
-												</div>
-											)}
-											{item.text && (
-												<Collapse>
-													<Collapse.Panel header='Текстовое пожелание'>
-														<p>{item.text}</p>
-													</Collapse.Panel>
-												</Collapse>
-											)}
-										</div>
-									</List.Item>
-								)}
-							/>
+						{selectedDiscipline ? (
+							(() => {
+								console.log(selectedDiscipline.disciplineName)
+								console.log(disciplinesWishes)
+								const matchingWish = disciplinesWishes?.find(
+									wish => wish.discipline === selectedDiscipline.disciplineName
+									// && wish.type === selectedDiscipline.type
+								)
+								// Если disciplinesText не является массивом, возвращаем null
+								const matchingText =
+									Array.isArray(disciplinesText) &&
+									disciplinesText.find(
+										text =>
+											text.discipline === selectedDiscipline.disciplineName
+									)
+
+								return (
+									<div>
+										{matchingWish ? (
+											<div>
+												<p>
+													<strong>Тип аудитории:</strong>{' '}
+													{matchingWish.audienceType.title}
+												</p>
+												<p>
+													<strong>Пожелание:</strong> {disciplinesText}
+												</p>
+											</div>
+										) : (
+											<p>Пожелания для выбранной дисциплины не найдены.</p>
+										)}
+									</div>
+								)
+							})()
+						) : (
+							<>Дисциплина не выбрана</>
 						)}
 					</div>
 				</Splitter.Panel>

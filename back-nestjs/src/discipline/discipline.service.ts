@@ -513,4 +513,64 @@ export class DisciplineService {
 		}
 		return results
 	}
+
+	async getAllTeacherPairs() {
+		try {
+			const assignments =
+				await this.prisma.teacherDisciplineAssignment.findMany({
+					select: {
+						id: true,
+						discipline: true,
+						type: true,
+						audienceType: {
+							select: {
+								id: true,
+								title: true,
+							},
+						},
+						teachers: {
+							select: {
+								id: true,
+								user: {
+									select: {
+										firstName: true,
+										lastName: true,
+										middleName: true,
+									},
+								},
+							},
+						},
+					},
+				})
+
+			if (!assignments || assignments.length === 0) {
+				throw new NotFoundException(`Пары не найдены`)
+			}
+
+			return assignments
+		} catch (error) {
+			throw new Error(`Не удалось получить пары: ${error.message}`)
+		}
+	}
+
+	async getAllTeacherTextWishes() {
+		try {
+			const textWishes = await this.prisma.textWish.findMany({
+				select: {
+					teacherId: true,
+					wishText: true,
+				},
+			})
+
+			if (!textWishes || textWishes.length === 0) {
+				throw new NotFoundException(`Текстовые пожелания не найдены`)
+			}
+
+			return textWishes
+		} catch (error) {
+			throw new Error(
+				`Не удалось получить текстовые пожелания: ${error.message}`
+			)
+		}
+	}
 }

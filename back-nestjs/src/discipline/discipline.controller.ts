@@ -85,7 +85,7 @@ export class DisciplineController {
 	}
 
 	// Новый метод для получения пар преподавателя по его ID
-	@Post('teacher/:teacherId/pairs')
+	@Post('teacher/:teacherId/pair')
 	async getTeacherPairs(@Param('teacherId') teacherId: string) {
 		try {
 			const pairs = await this.disciplineService.getTeacherPairs(teacherId)
@@ -105,6 +105,34 @@ export class DisciplineController {
 		} catch (error) {
 			return {
 				message: 'Ошибка при получении текста преподавателя: ' + error.message,
+			}
+		}
+	}
+
+	// Получение всех пар всех преподавателей
+	@Get('all/pairs')
+	async getAllTeacherPairs() {
+		try {
+			const pairs = await this.disciplineService.getAllTeacherPairs()
+			console.log(pairs)
+			return pairs
+		} catch (error) {
+			return {
+				message: 'Ошибка при получении всех пар: ' + error.message,
+			}
+		}
+	}
+
+	// Получение всех текстовых пожеланий преподавателей
+	@Get('all/texts')
+	async getAllTeacherTextWishes() {
+		try {
+			const wishes = await this.disciplineService.getAllTeacherTextWishes()
+			return wishes
+		} catch (error) {
+			return {
+				message:
+					'Ошибка при получении текстов преподавателей: ' + error.message,
 			}
 		}
 	}

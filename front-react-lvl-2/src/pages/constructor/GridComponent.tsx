@@ -1,4 +1,5 @@
 import audienceService from '@/services/room/audience.service'
+import usersService from '@/services/user/users.service'
 import { useSelectedPairStore } from '@/store/selectedPairStore'
 import { useQuery } from '@tanstack/react-query'
 import { Button, message, Segmented, Table } from 'antd'
@@ -18,7 +19,25 @@ const GridComponent: React.FC = () => {
 	const { selectedDiscipline, decrementPair, incrementPair } =
 		useSelectedPairStore()
 
-	console.log(selectedDiscipline)
+	// console.log(selectedDiscipline)
+
+	const {
+		data: usersData,
+		isLoadingUser,
+		errorUser,
+	} = useQuery<User[]>({
+		queryKey: ['users'],
+		queryFn: async () => {
+			const users = await usersService.getAll()
+			return users.map(user => ({
+				...user,
+				role: user.role || user.rights,
+				teacher: user.Teacher,
+			}))
+		},
+	})
+
+	console.log(usersData)
 
 	// Подтягиваем список аудиторий (для назначения кабинета)
 	const {
@@ -157,6 +176,19 @@ const GridComponent: React.FC = () => {
 		[weekKey]
 	)
 
+	const setTeacher = useCallback(
+		(day: string, hour: string, teacherId: string) => {
+			const key = `${day}-${hour}`
+			setSelectedCells(prev => {
+				const copy = { ...prev[weekKey] }
+				const cellData = copy[key] || {}
+				copy[key] = { ...cellData, teacherId }
+				return { ...prev, [weekKey]: copy }
+			})
+		},
+		[weekKey]
+	)
+
 	// Определяем колонки для таблицы
 	const columns = [
 		{
@@ -174,15 +206,23 @@ const GridComponent: React.FC = () => {
 			render: (_: any, record: { hour: string }) => {
 				const key = `${day}-${record.hour}`
 				const cellData = selectedCells[weekKey][key]
+
 				return (
 					<GridCell
 						day={day}
 						hour={record.hour}
 						cellData={cellData}
 						rooms={roomTitles}
+						teachers={
+							usersData?.map(user => ({
+								id: user.teacher?.id,
+								fullName: `${user.lastName} ${user.firstName} ${user.middleName}`,
+							})) ?? []
+						} // Передаем список преподавателей
 						placePair={placePair}
 						removePair={removePair}
 						setRoom={setRoom}
+						setTeacher={setTeacher} // Передаем setTeacher
 					/>
 				)
 			},

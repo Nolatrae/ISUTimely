@@ -8,6 +8,7 @@ import { v4 as uuidv4 } from 'uuid'
 import wishesService from '@/services/wishes/wishes.service'
 import GridComponent from './GridComponent'
 
+import usersService from '@/services/user/users.service'
 import styles from './style.module.scss'
 
 /**
@@ -18,6 +19,12 @@ function roundPairs(value: number, hoursPerPair = 17) {
 	const raw = value / hoursPerPair
 	const fraction = raw - Math.floor(raw)
 	return fraction >= 0.5 ? Math.ceil(raw) : Math.floor(raw)
+}
+
+const typeMap: Record<string, string> = {
+	Лекция: 'lecture',
+	Практика: 'practice',
+	Лабораторная: 'lab',
 }
 
 export function Constructor() {
@@ -49,6 +56,24 @@ export function Constructor() {
 		queryKey: ['allTeacherWishes'],
 		queryFn: () => wishesService.getAllWishes().then(res => res.data),
 	})
+
+	const {
+		data: usersData,
+		isUserLoading,
+		isUserError,
+	} = useQuery<any[]>({
+		queryKey: ['users'],
+		queryFn: async () => {
+			const users = await usersService.getAll()
+			return users.map(user => ({
+				...user,
+				role: user.role || user.rights,
+				teacher: user.Teacher,
+			}))
+		},
+	})
+
+	// console.log(usersData)
 
 	// Группировка пожеланий по преподавателю
 	const groupedWishes = wishesResponse.reduce((acc: any, wish: any) => {
@@ -137,6 +162,8 @@ export function Constructor() {
 		setDisciplines(generated)
 	}, [disciplinesData, setDisciplines])
 
+	console.log(disciplines)
+
 	// Запрос на получение дисциплин
 	const {
 		data: disciplinesWishes,
@@ -148,7 +175,16 @@ export function Constructor() {
 			disciplineService.getTeacherPairs('f59fa491-baa0-4af8-8588-4b213ffafc05'),
 	})
 
-	console.log(disciplinesWishes)
+	const {
+		data: disciplinesWishesAll,
+		isLoading: isDisciplineLoadingAll,
+		error: disciplineErrorAll,
+	} = useQuery({
+		queryKey: ['disciplines'],
+		queryFn: () => disciplineService.getAllTeacherPairs(),
+	})
+
+	console.log(disciplinesWishesAll)
 
 	const {
 		data: disciplinesText,
@@ -160,7 +196,7 @@ export function Constructor() {
 			disciplineService.getTeacherText('f59fa491-baa0-4af8-8588-4b213ffafc05'),
 	})
 
-	console.log(disciplinesWishes, disciplinesText)
+	// console.log(disciplinesWishes, disciplinesText)
 
 	return (
 		<div className='h-screen'>
@@ -178,7 +214,21 @@ export function Constructor() {
 							!error &&
 							disciplines.map(disc => {
 								const isActive = selectedDiscipline?.id === disc.id
-								console.log(disciplines[0].totalPairs)
+
+								const matchedPair = disciplinesWishesAll?.find(pair => {
+									return (
+										pair.discipline === disc.disciplineName &&
+										pair.type.toLowerCase() === typeMap[disc.type]
+									)
+								})
+
+								// 2. Из matchedPair достаём массив teachers
+								const teacherNames =
+									matchedPair?.teachers?.map(t => {
+										const { lastName, firstName, middleName } = t.user
+										return `${lastName} ${firstName} ${middleName ?? ''}`.trim()
+									}) ?? []
+
 								return (
 									<Card
 										key={disc.id}
@@ -192,6 +242,15 @@ export function Constructor() {
 									>
 										<p>Осталось пар: {disc.totalPairs}</p>
 										<p>Можно онлайн: {disc.onlinePossible}</p>
+
+										{/* 3. Если в matchedPair есть учителя, выводим их ID: */}
+										{teacherNames.length > 0 && (
+											<p>
+												Преподаватели:
+												<br />
+												{teacherNames.join(', ')}
+											</p>
+										)}
 									</Card>
 								)
 							})}
@@ -210,11 +269,10 @@ export function Constructor() {
 					<div className='h-full overflow-auto p-4'>
 						{selectedDiscipline ? (
 							(() => {
-								console.log(selectedDiscipline.disciplineName)
-								console.log(disciplinesWishes)
+								// console.log(selectedDiscipline.disciplineName)
+								// console.log(disciplinesWishes)
 								const matchingWish = disciplinesWishes?.find(
 									wish => wish.discipline === selectedDiscipline.disciplineName
-									// && wish.type === selectedDiscipline.type
 								)
 								// Если disciplinesText не является массивом, возвращаем null
 								const matchingText =
@@ -230,7 +288,7 @@ export function Constructor() {
 											<div>
 												<p>
 													<strong>Тип аудитории:</strong>{' '}
-													{matchingWish.audienceType.title}
+													{matchingWish.audienceType?.title}
 												</p>
 												<p>
 													<strong>Пожелание:</strong> {disciplinesText}

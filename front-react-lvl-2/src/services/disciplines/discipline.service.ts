@@ -102,13 +102,36 @@ class DisciplineService {
 
 	async getTeacherText(teacherId: string) {
 		try {
-			console.log(teacherId)
+			// console.log(teacherId)
 			const response = await instance.post(
 				`${this.BASE_URL}/teacher/${teacherId}/text`
 			)
 			return response.data
 		} catch (error) {
 			console.error('Ошибка при получении текста преподавателя:', error)
+			throw error
+		}
+	}
+
+	// Получение всех пар преподавателей
+	async getAllTeacherPairs() {
+		try {
+			const response = await instance.get(`${this.BASE_URL}/all/pairs`)
+			console.log(response)
+			return response.data
+		} catch (error) {
+			console.error('Ошибка при получении всех пар преподавателей:', error)
+			throw error
+		}
+	}
+
+	// Получение всех текстовых пожеланий преподавателей
+	async getAllTeacherTextWishes() {
+		try {
+			const response = await instance.get(`${this.BASE_URL}/all/texts`)
+			return response.data
+		} catch (error) {
+			console.error('Ошибка при получении всех текстов преподавателей:', error)
 			throw error
 		}
 	}

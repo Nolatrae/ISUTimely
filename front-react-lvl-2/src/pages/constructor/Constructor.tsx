@@ -2,7 +2,7 @@ import { disciplineService } from '@/services/disciplines/discipline.service'
 import { useSelectedPairStore } from '@/store/selectedPairStore'
 import { useQuery } from '@tanstack/react-query'
 import { Card, Splitter } from 'antd'
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { v4 as uuidv4 } from 'uuid'
 
 import wishesService from '@/services/wishes/wishes.service'
@@ -30,6 +30,7 @@ const typeMap: Record<string, string> = {
 export function Constructor() {
 	// Пример: айди учебного плана
 	const studyPlanId = 'cm8vhkh5p0013fbt8u1m4wcfc'
+	const [selectedSemester, setSelectedSemester] = useState<number>(1)
 
 	// Zustand store
 	const { disciplines, selectedDiscipline, setDisciplines, toggleDiscipline } =
@@ -100,7 +101,7 @@ export function Constructor() {
 
 		const generated = disciplinesData
 			// К примеру, фильтруем по первому семестру (как было в примере)
-			.filter(d => d.semester === 1)
+			.filter(d => d.semester === selectedSemester)
 			.flatMap(d => {
 				const {
 					name,
@@ -160,7 +161,7 @@ export function Constructor() {
 			})
 
 		setDisciplines(generated)
-	}, [disciplinesData, setDisciplines])
+	}, [disciplinesData, setDisciplines, selectedSemester])
 
 	console.log(disciplines)
 
@@ -196,10 +197,9 @@ export function Constructor() {
 			disciplineService.getTeacherText('f59fa491-baa0-4af8-8588-4b213ffafc05'),
 	})
 
-	// console.log(disciplinesWishes, disciplinesText)
-
 	return (
 		<div className='h-screen'>
+			<div></div>
 			<Splitter
 				className={styles.container}
 				style={{ boxShadow: '0 0 10px rgba(0, 0, 0, 0.1)' }}
@@ -260,7 +260,10 @@ export function Constructor() {
 				{/* Панель 2: расписание */}
 				<Splitter.Panel collapsible={{ start: true }}>
 					<div className='h-full overflow-auto p-4'>
-						<GridComponent />
+						<GridComponent
+							semester={selectedSemester}
+							onSemesterChange={setSelectedSemester}
+						/>
 					</div>
 				</Splitter.Panel>
 

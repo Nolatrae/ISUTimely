@@ -3,7 +3,7 @@ import usersService from '@/services/user/users.service'
 import { useSelectedPairStore } from '@/store/selectedPairStore'
 import { useQuery } from '@tanstack/react-query'
 import { Button, message, Segmented, Table } from 'antd'
-import React, { useCallback, useState } from 'react'
+import React, { useCallback, useEffect, useState } from 'react'
 import GridCell from './GridCell'
 import { daysOfWeek, hoursOfDay } from './const'
 
@@ -15,7 +15,15 @@ interface CellData {
 	room?: string
 }
 
-const GridComponent: React.FC = () => {
+interface GridComponentProps {
+	semester: number
+	onSemesterChange: (sem: number) => void
+}
+
+const GridComponent: React.FC<GridComponentProps> = ({
+	semester,
+	onSemesterChange,
+}) => {
 	const { selectedDiscipline, decrementPair, incrementPair } =
 		useSelectedPairStore()
 
@@ -58,6 +66,10 @@ const GridComponent: React.FC = () => {
 		even: {},
 		odd: {},
 	})
+
+	useEffect(() => {
+		setSelectedCells({ even: {}, odd: {} })
+	}, [semester])
 
 	// Чётная или нечётная неделя
 	const [isEvenWeek, setIsEvenWeek] = useState(true)
@@ -234,21 +246,37 @@ const GridComponent: React.FC = () => {
 
 	// Условная кнопка «Сохранить»
 	const handleSave = useCallback(() => {
-		console.log('Сохранение расписания:', selectedCells)
-		message.success('Расписание сохранено (пример)')
-	}, [selectedCells])
+		// console.log('Сохранение расписания:', selectedCells)
+		// message.success('Расписание сохранено (пример)')
+		console.log('Сохранение расписания:', {
+			semester,
+			selectedCells,
+		})
+		message.success(`Расписание семестра ${semester} сохранено`)
+	}, [selectedCells, semester, isEvenWeek])
 
 	return (
 		<div>
-			<Segmented
-				options={[
-					{ label: 'Чётная неделя', value: 'even' },
-					{ label: 'Нечётная неделя', value: 'odd' },
-				]}
-				value={isEvenWeek ? 'even' : 'odd'}
-				onChange={handleSegmentedChange}
-				className='mb-4 mt-4'
-			/>
+			<div className='flex gap-4 mb-4'>
+				<Segmented
+					options={[1, 2, 3, 4, 5, 6, 7, 8].map(n => ({
+						label: `${n}`,
+						value: n,
+					}))}
+					value={semester}
+					onChange={val => onSemesterChange(val as number)}
+					// className='mb-4'
+				/>
+				<Segmented
+					options={[
+						{ label: 'Чётная неделя', value: 'even' },
+						{ label: 'Нечётная неделя', value: 'odd' },
+					]}
+					value={isEvenWeek ? 'even' : 'odd'}
+					onChange={handleSegmentedChange}
+					// className='mb-4 mt-4'
+				/>
+			</div>
 
 			<Table
 				bordered

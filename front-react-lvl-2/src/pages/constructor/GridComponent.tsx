@@ -17,11 +17,13 @@ interface CellData {
 }
 
 interface GridComponentProps {
+	yearOfAdmission: number
 	semester: number
 	onSemesterChange: (sem: number) => void
 }
 
 const GridComponent: React.FC<GridComponentProps> = ({
+	yearOfAdmission,
 	semester,
 	onSemesterChange,
 }) => {
@@ -257,9 +259,18 @@ const GridComponent: React.FC<GridComponentProps> = ({
 		message.success(`Расписание семестра ${semester} сохранено`)
 	}, [selectedCells, semester, isEvenWeek])
 
+	const halfIndex = semester + 1
+	// рассчитываем год: отступаем на floor((i‑1)/2) лет от года поступления
+	const displayYear = yearOfAdmission + Math.floor((halfIndex - 1) / 2)
+	// выбираем полугодие по чётности индекса
+	const halfText = halfIndex % 2 === 1 ? '1 полугодие' : '2 полугодие'
+
 	return (
 		<div>
 			<div className='flex gap-4 mb-4'>
+				<span className='font-medium content-center'>
+					{displayYear} − {halfText}
+				</span>
 				<Segmented
 					options={[1, 2, 3, 4, 5, 6, 7, 8].map(n => ({
 						label: `${n}`,
@@ -267,7 +278,6 @@ const GridComponent: React.FC<GridComponentProps> = ({
 					}))}
 					value={semester}
 					onChange={val => onSemesterChange(val as number)}
-					// className='mb-4'
 				/>
 				<Segmented
 					options={[
@@ -276,7 +286,6 @@ const GridComponent: React.FC<GridComponentProps> = ({
 					]}
 					value={isEvenWeek ? 'even' : 'odd'}
 					onChange={handleSegmentedChange}
-					// className='mb-4 mt-4'
 				/>
 			</div>
 

@@ -26,8 +26,11 @@ const typeMap: Record<string, string> = {
 	Практика: 'practice',
 	Лабораторная: 'lab',
 }
-
-export function Constructor() {
+export function Constructor({
+	yearOfAdmission = 2021,
+}: {
+	yearOfAdmission: number
+}) {
 	// Пример: айди учебного плана
 	const studyPlanId = 'cm8vhkh5p0013fbt8u1m4wcfc'
 	const [selectedSemester, setSelectedSemester] = useState<number>(1)
@@ -274,6 +277,7 @@ export function Constructor() {
 				<Splitter.Panel collapsible={{ start: true }}>
 					<div className='h-full overflow-auto p-4'>
 						<GridComponent
+							yearOfAdmission={yearOfAdmission}
 							semester={selectedSemester}
 							onSemesterChange={setSelectedSemester}
 						/>

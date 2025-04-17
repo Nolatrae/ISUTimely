@@ -74,6 +74,17 @@ export function Constructor() {
 		},
 	})
 
+	const {
+		data: disciplinesWishesAll,
+		isLoading: isDisciplineLoadingAll,
+		error: disciplineErrorAll,
+	} = useQuery({
+		queryKey: ['disciplines'],
+		queryFn: () => disciplineService.getAllTeacherPairs(),
+	})
+
+	console.log(disciplinesWishesAll)
+
 	// console.log(usersData)
 
 	// Группировка пожеланий по преподавателю
@@ -97,7 +108,7 @@ export function Constructor() {
 
 	// Когда дисциплины загружены, собираем единый список «Лекция/Практика/Лабораторная» с общим числом пар и доступным онлайн
 	useEffect(() => {
-		if (!disciplinesData.length) return
+		if (!disciplinesData.length || !disciplinesWishesAll) return
 
 		const generated = disciplinesData
 			// К примеру, фильтруем по первому семестру (как было в примере)
@@ -160,8 +171,21 @@ export function Constructor() {
 				return items
 			})
 
-		setDisciplines(generated)
-	}, [disciplinesData, setDisciplines, selectedSemester])
+		// Привязываем teacherIds к каждой «пистой» дисциплине
+		const withTeachers = generated.map(item => {
+			const mp = disciplinesWishesAll.find(
+				p =>
+					p.discipline === item.disciplineName &&
+					p.type.toLowerCase() === typeMap[item.type]
+			)
+			return {
+				...item,
+				teacherIds: mp?.teachers.map(t => t.id) ?? [],
+			}
+		})
+
+		setDisciplines(withTeachers)
+	}, [disciplinesData, disciplinesWishesAll, selectedSemester, setDisciplines])
 
 	console.log(disciplines)
 
@@ -175,17 +199,6 @@ export function Constructor() {
 		queryFn: () =>
 			disciplineService.getTeacherPairs('f59fa491-baa0-4af8-8588-4b213ffafc05'),
 	})
-
-	const {
-		data: disciplinesWishesAll,
-		isLoading: isDisciplineLoadingAll,
-		error: disciplineErrorAll,
-	} = useQuery({
-		queryKey: ['disciplines'],
-		queryFn: () => disciplineService.getAllTeacherPairs(),
-	})
-
-	console.log(disciplinesWishesAll)
 
 	const {
 		data: disciplinesText,

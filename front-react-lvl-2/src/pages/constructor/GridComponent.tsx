@@ -13,6 +13,7 @@ interface CellData {
 	discipline?: string // Название для отображения
 	isOnline?: boolean
 	room?: string
+	teacherId?: string
 }
 
 interface GridComponentProps {
@@ -140,7 +141,8 @@ const GridComponent: React.FC<GridComponentProps> = ({
 					disciplineId: selectedDiscipline.id,
 					discipline: `${selectedDiscipline.disciplineName} (${selectedDiscipline.type})`,
 					isOnline,
-					room: '', // пока оставляем пустым, можно назначить позже
+					room: '',
+					teacherId: selectedDiscipline.teacherIds?.[0] ?? undefined,
 				}
 
 				return { ...prev, [weekKey]: copy }

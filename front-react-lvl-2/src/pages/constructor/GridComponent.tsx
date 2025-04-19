@@ -263,7 +263,6 @@ const GridComponent: React.FC<GridComponentProps> = ({
 		// message.success('Расписание сохранено (пример)')
 		const payload = {
 			halfYear: halfYearCode,
-
 			schedule: selectedCells,
 		}
 		console.log('Сохраняем расписание:', payload)
@@ -273,7 +272,7 @@ const GridComponent: React.FC<GridComponentProps> = ({
 	return (
 		<div>
 			<div className='flex gap-4 mb-4'>
-				<span className='font-medium'>
+				<span className='font-medium content-center'>
 					{displayYear} − {halfNumber} полугодие
 				</span>
 				<Segmented

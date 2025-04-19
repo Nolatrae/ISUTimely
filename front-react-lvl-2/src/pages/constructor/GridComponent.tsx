@@ -248,28 +248,33 @@ const GridComponent: React.FC<GridComponentProps> = ({
 	// Формируем строки по временам
 	const dataSource = hoursOfDay.map(hour => ({ key: hour, hour }))
 
+	// 1) Вычисляем индекс полугодия (семестр 1→i=2, 2→3, …)
+	const halfIndex = semester + 1
+	// 2) Высчитываем год, добавляя по целому году каждые два полугодия
+	const displayYear = yearOfAdmission + Math.floor((halfIndex - 1) / 2)
+	// 3) Определяем номер полугодия: чётный i→2, нечётный→1
+	const halfNumber = halfIndex % 2 === 0 ? 2 : 1
+	// 4) Формируем машинный код вида "2021H2"
+	const halfYearCode = `${displayYear}H${halfNumber}`
+
 	// Условная кнопка «Сохранить»
 	const handleSave = useCallback(() => {
 		// console.log('Сохранение расписания:', selectedCells)
 		// message.success('Расписание сохранено (пример)')
-		console.log('Сохранение расписания:', {
-			semester,
-			selectedCells,
-		})
-		message.success(`Расписание семестра ${semester} сохранено`)
-	}, [selectedCells, semester, isEvenWeek])
+		const payload = {
+			halfYear: halfYearCode,
 
-	const halfIndex = semester + 1
-	// рассчитываем год: отступаем на floor((i‑1)/2) лет от года поступления
-	const displayYear = yearOfAdmission + Math.floor((halfIndex - 1) / 2)
-	// выбираем полугодие по чётности индекса
-	const halfText = halfIndex % 2 === 1 ? '1 полугодие' : '2 полугодие'
+			schedule: selectedCells,
+		}
+		console.log('Сохраняем расписание:', payload)
+		message.success(`Расписание семестра ${semester} сохранено`)
+	}, [selectedCells, semester, isEvenWeek, halfYearCode])
 
 	return (
 		<div>
 			<div className='flex gap-4 mb-4'>
-				<span className='font-medium content-center'>
-					{displayYear} − {halfText}
+				<span className='font-medium'>
+					{displayYear} − {halfNumber} полугодие
 				</span>
 				<Segmented
 					options={[1, 2, 3, 4, 5, 6, 7, 8].map(n => ({

@@ -149,6 +149,13 @@ export class ScheduleService {
 				timeSlot: true,
 				groups: { include: { group: true } },
 				rooms: { include: { audience: true } },
+				teachers: {
+					include: {
+						teacher: {
+							include: { user: true },
+						},
+					},
+				},
 				assignment: {
 					include: {
 						teachers: { include: { user: true } },

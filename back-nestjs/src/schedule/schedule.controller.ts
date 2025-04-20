@@ -29,7 +29,8 @@ export class ScheduleController {
 		@Param('audienceId') audienceId: string,
 		@Query('halfYear') halfYear: string
 	) {
-		return this.service.findBusyRooms(audienceId, halfYear)
+		const result = await this.service.findBusyRooms(audienceId, halfYear)
+		return result
 	}
 
 	/** Занятость преподавателя: отдаем массив ScheduledPair */

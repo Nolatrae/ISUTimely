@@ -12,7 +12,6 @@ interface BusyResourcePageProps {
 	yearOfAdmission?: number
 }
 
-// Карта перевода enum DayOfWeek -> русские названия
 const ruDayMap: Record<string, string> = {
 	MON: 'Понедельник',
 	TUE: 'Вторник',
@@ -28,6 +27,15 @@ const ruTypeMap: Record<string, string> = {
 	practice: 'Практика',
 }
 
+const halfYearOptions = Array.from({ length: 10 }, (_, i) => {
+	const year = 2021 + Math.floor(i / 2)
+	const half = i % 2 === 0 ? 1 : 2
+	return {
+		value: `${year}H${half}`,
+		label: `${year} год — ${half} полугодие`,
+	}
+})
+
 const BusyResourcePage: React.FC<BusyResourcePageProps> = ({
 	yearOfAdmission = 2021,
 }) => {
@@ -35,10 +43,9 @@ const BusyResourcePage: React.FC<BusyResourcePageProps> = ({
 		'teacher'
 	)
 	const [resourceId, setResourceId] = useState<string | null>(null)
-	const [semester, setSemester] = useState<number>(1)
+	const [halfYearCode, setHalfYearCode] = useState<string>('2021H1')
 	const [isEvenWeek, setIsEvenWeek] = useState<boolean>(true)
 
-	// 1) Список преподавателей и кабинетов
 	const { data: teachers = [] } = useQuery({
 		queryKey: ['teachers'],
 		queryFn: () => usersService.getAll(),
@@ -48,13 +55,6 @@ const BusyResourcePage: React.FC<BusyResourcePageProps> = ({
 		queryFn: () => audienceService.getAll(),
 	})
 
-	// 2) Код полугодия вида "2021H2"
-	const halfIndex = semester + 1
-	const displayYear = yearOfAdmission + Math.floor((halfIndex - 1) / 2)
-	const halfNumber = halfIndex % 2 === 0 ? 2 : 1
-	const halfYearCode = `${displayYear}H${halfNumber}`
-
-	// 3) Загружаем массив занятых пар с полной информацией
 	const { data: busySlots = [], isFetching } = useQuery<ScheduledPair[]>({
 		queryKey: ['busySlots', resourceType, resourceId, halfYearCode],
 		queryFn: () =>
@@ -66,7 +66,6 @@ const BusyResourcePage: React.FC<BusyResourcePageProps> = ({
 		enabled: Boolean(resourceId),
 	})
 
-	// 4) Группируем по ключу "День-Время" с русским днём и display title
 	const slotsMap = useMemo(() => {
 		const m: Record<string, ScheduledPair[]> = {}
 		const filterWeek = isEvenWeek ? 'EVEN' : 'ODD'
@@ -81,9 +80,6 @@ const BusyResourcePage: React.FC<BusyResourcePageProps> = ({
 		return m
 	}, [busySlots, isEvenWeek])
 
-	const weekKey = isEvenWeek ? 'even' : 'odd'
-
-	// 5) Определяем колонки таблицы
 	const columns = [
 		{
 			title: 'Время',
@@ -174,13 +170,11 @@ const BusyResourcePage: React.FC<BusyResourcePageProps> = ({
 					onChange={setResourceId}
 				/>
 
-				<Segmented
-					options={Array.from({ length: 8 }, (_, i) => ({
-						label: `${i + 1}`,
-						value: i + 1,
-					}))}
-					value={semester}
-					onChange={val => setSemester(val as number)}
+				<Select
+					style={{ width: 180 }}
+					options={halfYearOptions}
+					value={halfYearCode}
+					onChange={val => setHalfYearCode(val)}
 				/>
 
 				<Segmented

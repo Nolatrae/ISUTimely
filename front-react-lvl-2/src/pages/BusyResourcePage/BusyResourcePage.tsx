@@ -22,7 +22,7 @@ const ruDayMap: Record<string, string> = {
 	SUN: 'Воскресенье',
 }
 
-const ruTypeMap: Record<string, string> = {
+export const ruTypeMap: Record<string, string> = {
 	lecture: 'Лекция',
 	practice: 'Практика',
 }

@@ -1,12 +1,20 @@
-import { Card, Dropdown, Input, Menu } from 'antd'
+import { ScheduledPair } from '@/services/schedule/schedule.service'
+import { ExclamationCircleOutlined } from '@ant-design/icons'
+import { Card, Dropdown, Input, List, Menu, Popover } from 'antd'
 import React, { memo, useCallback, useState } from 'react'
+import { ruTypeMap } from '../BusyResourcePage/BusyResourcePage'
 
 interface CellData {
 	disciplineId?: string
 	discipline?: string
 	isOnline?: boolean
 	room?: string
-	teacherId?: string // Добавляем id преподавателя
+	teacherId?: string
+}
+
+interface RoomInfo {
+	id: string
+	title: string
 }
 
 interface GridCellProps {
@@ -14,20 +22,35 @@ interface GridCellProps {
 	hour: string
 	cellData?: CellData
 
-	rooms: string[]
-	teachers: { id: string; fullName: string }[] // Преподаватели для выбора
-
-	// Клик (ЛКМ или из контекстного меню) — постановка пары
+	rooms: RoomInfo[]
+	teachers: { id: string; fullName: string }[]
+	getBusyPairs: (roomId: string, day: string, hour: string) => ScheduledPair[]
 	placePair: (day: string, hour: string, isOnline: boolean) => void
 
-	// Удаление пары из ячейки
 	removePair: (day: string, hour: string) => void
 
-	// Установка аудитории
 	setRoom: (day: string, hour: string, room: string) => void
 
-	// Установка преподавателя
 	setTeacher: (day: string, hour: string, teacherId: string) => void
+}
+
+const dayCodeMap: Record<
+	string,
+	'MON' | 'TUE' | 'WED' | 'THU' | 'FRI' | 'SAT'
+> = {
+	Понедельник: 'MON',
+	Вторник: 'TUE',
+	Среда: 'WED',
+	Четверг: 'THU',
+	Пятница: 'FRI',
+	Суббота: 'SAT',
+}
+
+// из “10:10 — 11:40” → “10:10-11:40”
+function normalizeTimeSlotId(display: string): string {
+	return display
+		.replace(/\s/g, '') // убрать все пробелы
+		.replace(/[—–−]/g, '-') // все варианты длинного тире → дефис
 }
 
 const GridCell: React.FC<GridCellProps> = memo(props => {
@@ -37,6 +60,7 @@ const GridCell: React.FC<GridCellProps> = memo(props => {
 		cellData,
 		rooms,
 		teachers,
+		getBusyPairs,
 		placePair,
 		removePair,
 		setRoom,
@@ -51,7 +75,7 @@ const GridCell: React.FC<GridCellProps> = memo(props => {
 	// Поиск и выбор кабинета
 	const [roomSearch, setRoomSearch] = useState('')
 	const filteredRooms = rooms.filter(r =>
-		r.toLowerCase().includes(roomSearch.toLowerCase())
+		r.title.toLowerCase().includes(roomSearch.toLowerCase())
 	)
 	const handleRoomSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
 		setRoomSearch(e.target.value)
@@ -73,6 +97,48 @@ const GridCell: React.FC<GridCellProps> = memo(props => {
 		placePair(day, hour, false)
 	}, [day, hour, placePair])
 
+	function makePopoverContent(pairs: ScheduledPair[]) {
+		return (
+			<List
+				className='max-w-[280px]'
+				dataSource={pairs}
+				renderItem={p => (
+					<List.Item key={p.id} className='block'>
+						<div className='text-sm grid grid-cols-[110px_1fr] gap-y-1'>
+							<span className='font-semibold'>Дисциплина:</span>
+							<span>{p.assignment?.discipline ?? '—'}</span>
+
+							<span className='font-semibold'>Тип:</span>
+							<span>
+								{ruTypeMap[p.assignment?.type ?? ''] ?? p.assignment?.type}
+							</span>
+
+							<span className='font-semibold'>Группа:</span>
+							<span>{p.groups?.map(g => g.group.title).join(', ') || '—'}</span>
+
+							{p.teachers?.length > 0 && (
+								<>
+									<span className='font-semibold'>Преподаватель:</span>
+									<span>
+										{p.teachers
+											.map(
+												t =>
+													`${t.teacher.user.lastName} ${t.teacher.user.firstName}`
+											)
+											.join(', ')}
+									</span>
+								</>
+							)}
+						</div>
+					</List.Item>
+				)}
+				size='small'
+				bordered={false}
+				split={false}
+			/>
+		)
+	}
+
 	// Контекстное меню
 	const menu = (
 		<Menu>
@@ -87,11 +153,41 @@ const GridCell: React.FC<GridCellProps> = memo(props => {
 						onMouseDown={e => e.stopPropagation()}
 					/>
 				</Menu.Item>
-				{filteredRooms.map(r => (
-					<Menu.Item key={r} onClick={() => setRoom(day, hour, r)}>
-						{r}
-					</Menu.Item>
-				))}
+				{filteredRooms.map(room => {
+					console.log('🏷 checkBusy:', {
+						roomId: room.id,
+						title: room.title,
+						day,
+						hour,
+						result: getBusyPairs(room.id, day, hour),
+					})
+
+					const apiDay = dayCodeMap[day] || day
+					const apiHour = normalizeTimeSlotId(hour)
+					const busyPairs = getBusyPairs(room.id, apiDay, apiHour)
+					const busy = busyPairs.length > 0
+
+					return (
+						<Menu.Item
+							key={room.id}
+							onClick={() => setRoom(day, hour, room.title)}
+							danger={busy}
+						>
+							<div className='flex justify-between items-center w-full'>
+								{room.title}
+								{busy && (
+									<Popover
+										content={makePopoverContent(busyPairs)}
+										placement='right'
+										trigger='hover'
+									>
+										<ExclamationCircleOutlined style={{ marginLeft: 6 }} />
+									</Popover>
+								)}
+							</div>
+						</Menu.Item>
+					)
+				})}
 			</Menu.SubMenu>
 
 			<Menu.Divider />

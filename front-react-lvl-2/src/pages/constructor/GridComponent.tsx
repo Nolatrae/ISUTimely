@@ -1,6 +1,7 @@
 import audienceService from '@/services/room/audience.service'
 import scheduleService, {
 	BulkScheduleDto,
+	ScheduledPair,
 } from '@/services/schedule/schedule.service'
 import usersService from '@/services/user/users.service'
 import { useSelectedPairStore } from '@/store/selectedPairStore'
@@ -36,6 +37,10 @@ const GridComponent: React.FC<GridComponentProps> = ({
 }) => {
 	const { selectedDiscipline, decrementPair, incrementPair } =
 		useSelectedPairStore()
+
+	const [busyPairsByRoom, setBusyPairsByRoom] = useState<
+		Record<string /*roomId*/, ScheduledPair[]>
+	>({})
 
 	// console.log(selectedDiscipline)
 
@@ -235,13 +240,14 @@ const GridComponent: React.FC<GridComponentProps> = ({
 						day={day}
 						hour={record.hour}
 						cellData={cellData}
-						rooms={roomTitles}
 						teachers={
 							usersData?.map(user => ({
 								id: user.teacher?.id,
 								fullName: `${user.lastName} ${user.firstName} ${user.middleName}`,
 							})) ?? []
-						} // Передаем список преподавателей
+						}
+						rooms={rooms}
+						getBusyPairs={getBusyPairs}
 						placePair={placePair}
 						removePair={removePair}
 						setRoom={setRoom}
@@ -321,6 +327,45 @@ const GridComponent: React.FC<GridComponentProps> = ({
 			message.error('Ошибка при сохранении расписания')
 		}
 	}, [selectedCells, halfYearCode, groupId, studyPlanId, typeMap])
+
+	useEffect(() => {
+		if (!rooms.length) return
+
+		let cancelled = false
+		;(async () => {
+			const entries = await Promise.all(
+				rooms.map(async r => {
+					const pairs = await scheduleService.getBusyRoomRecords(
+						r.id,
+						halfYearCode
+					)
+					console.log(r.id, pairs)
+					return [r.id, pairs] as const
+				})
+			)
+			if (!cancelled) setBusyPairsByRoom(Object.fromEntries(entries))
+		})()
+
+		return () => {
+			cancelled = true
+		}
+	}, [rooms, halfYearCode])
+
+	useEffect(() => {
+		console.log('🔴 busyPairsByRoom keys:', Object.keys(busyPairsByRoom))
+		console.log(busyPairsByRoom)
+	}, [busyPairsByRoom])
+
+	const getBusyPairs = useCallback(
+		(roomId: string, day: string, hour: string): ScheduledPair[] => {
+			const all = busyPairsByRoom[roomId] ?? []
+			const wk = isEvenWeek ? 'EVEN' : 'ODD'
+			return all.filter(
+				p => p.weekType === wk && p.dayOfWeek === day && p.timeSlotId === hour
+			)
+		},
+		[busyPairsByRoom, isEvenWeek]
+	)
 
 	return (
 		<div>

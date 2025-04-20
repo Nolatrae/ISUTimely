@@ -1,6 +1,7 @@
 import {
 	Building,
 	CakeSlice,
+	CalendarX,
 	DoorOpen,
 	Drill,
 	GraduationCap,
@@ -88,5 +89,10 @@ export const SIDEBAR_DATA: ISidebarItem[] = [
 		icon: Merge,
 		label: 'Объединение пар',
 		link: PUBLIC_PAGES.MERGEDISCIPLINES,
+	},
+	{
+		icon: CalendarX,
+		label: 'Занятость ресурсов',
+		link: PUBLIC_PAGES.BUSYRESOURCE,
 	},
 ]

@@ -20,7 +20,7 @@ export class WishesService {
 		}
 
 		const teacherId = teacher.id
-		console.log('Teacher ID:', teacherId)
+		// console.log('Teacher ID:', teacherId)
 
 		// Удаляем старые пожелания
 		await this.prisma.scheduleWish.deleteMany({ where: { teacherId } })

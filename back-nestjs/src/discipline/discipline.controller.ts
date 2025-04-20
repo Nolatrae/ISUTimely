@@ -42,7 +42,7 @@ export class DisciplineController {
 		}
 	) {
 		const { groupIds, semester, disciplines } = body
-		console.log(disciplines)
+		// console.log(disciplines)
 
 		if (
 			!groupIds ||
@@ -114,7 +114,7 @@ export class DisciplineController {
 	async getAllTeacherPairs() {
 		try {
 			const pairs = await this.disciplineService.getAllTeacherPairs()
-			console.log(pairs)
+			// console.log(pairs)
 			return pairs
 		} catch (error) {
 			return {

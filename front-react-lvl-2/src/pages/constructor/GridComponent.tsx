@@ -1,4 +1,7 @@
 import audienceService from '@/services/room/audience.service'
+import scheduleService, {
+	BulkScheduleDto,
+} from '@/services/schedule/schedule.service'
 import usersService from '@/services/user/users.service'
 import { useSelectedPairStore } from '@/store/selectedPairStore'
 import { useQuery } from '@tanstack/react-query'
@@ -20,12 +23,16 @@ interface GridComponentProps {
 	yearOfAdmission: number
 	semester: number
 	onSemesterChange: (sem: number) => void
+	studyPlanId: string
+	groupId: string
 }
 
 const GridComponent: React.FC<GridComponentProps> = ({
 	yearOfAdmission,
 	semester,
 	onSemesterChange,
+	studyPlanId,
+	groupId,
 }) => {
 	const { selectedDiscipline, decrementPair, incrementPair } =
 		useSelectedPairStore()
@@ -56,7 +63,7 @@ const GridComponent: React.FC<GridComponentProps> = ({
 		isLoading,
 		error,
 	} = useQuery<any[]>({
-		queryKey: ['departments'],
+		queryKey: ['rooms'],
 		queryFn: () => audienceService.getAll(),
 	})
 	const roomTitles = rooms.map(r => r.title)
@@ -248,26 +255,72 @@ const GridComponent: React.FC<GridComponentProps> = ({
 	// Формируем строки по временам
 	const dataSource = hoursOfDay.map(hour => ({ key: hour, hour }))
 
-	// 1) Вычисляем индекс полугодия (семестр 1→i=2, 2→3, …)
 	const halfIndex = semester + 1
-	// 2) Высчитываем год, добавляя по целому году каждые два полугодия
 	const displayYear = yearOfAdmission + Math.floor((halfIndex - 1) / 2)
-	// 3) Определяем номер полугодия: чётный i→2, нечётный→1
 	const halfNumber = halfIndex % 2 === 0 ? 2 : 1
-	// 4) Формируем машинный код вида "2021H2"
 	const halfYearCode = `${displayYear}H${halfNumber}`
 
-	// Условная кнопка «Сохранить»
-	const handleSave = useCallback(() => {
-		// console.log('Сохранение расписания:', selectedCells)
-		// message.success('Расписание сохранено (пример)')
-		const payload = {
-			halfYear: halfYearCode,
-			schedule: selectedCells,
+	const typeMap: Record<string, 'lecture' | 'practice'> = {
+		Лекция: 'lecture',
+		Практика: 'practice',
+	}
+
+	const handleSave = useCallback(async () => {
+		const scheduleDto: BulkScheduleDto['schedule'] = { even: {}, odd: {} }
+
+		function findRoomIdByTitle(title: string): string | undefined {
+			return rooms.find(r => r.title === title)?.id
 		}
-		console.log('Сохраняем расписание:', payload)
-		message.success(`Расписание семестра ${semester} сохранено`)
-	}, [selectedCells, semester, isEvenWeek, halfYearCode])
+
+		for (const [key, cell] of Object.entries(selectedCells.even)) {
+			const disciplineStr = cell.discipline!
+			const typeMatch = disciplineStr.match(/\((Лекция|Практика)\)/)
+			if (!typeMatch) return
+
+			const typeKey = typeMatch[1]
+			const disciplineName = disciplineStr.slice(0, typeMatch.index).trim()
+
+			scheduleDto.even[key] = {
+				disciplineName,
+				type: typeMap[typeKey],
+				isOnline: cell.isOnline!,
+				...(cell.room ? { roomId: findRoomIdByTitle(cell.room)! } : {}),
+				...(cell.teacherId ? { teacherIds: [cell.teacherId] } : {}),
+			}
+		}
+
+		console.log(selectedCells.odd)
+
+		for (const [key, cell] of Object.entries(selectedCells.odd)) {
+			const [name, typeLabel] = cell.discipline!.split('(')
+			const disciplineName = name.trim()
+			const typeKey = typeLabel.replace(')', '').trim()
+			console.log(typeKey)
+			scheduleDto.odd[key] = {
+				disciplineName,
+				type: typeMap[typeKey],
+				isOnline: cell.isOnline!,
+				...(cell.room ? { roomId: findRoomIdByTitle(cell.room)! } : {}),
+				...(cell.teacherId ? { teacherIds: [cell.teacherId] } : {}),
+			}
+		}
+
+		// 2. Конструируем полный BulkScheduleDto
+		const payload: BulkScheduleDto = {
+			studyPlanId,
+			groupId,
+			halfYear: halfYearCode,
+			schedule: scheduleDto,
+		}
+
+		// 3. Вызываем сервис
+		try {
+			await scheduleService.bulkCreate(payload)
+			message.success('Расписание сохранено на сервере')
+		} catch {
+			message.error('Ошибка при сохранении расписания')
+		}
+	}, [selectedCells, halfYearCode, groupId, studyPlanId, typeMap])
 
 	return (
 		<div>

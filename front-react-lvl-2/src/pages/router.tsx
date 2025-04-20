@@ -9,6 +9,7 @@ import { LoginPage } from './auth/login/Login'
 import RegisterPage from './auth/register/Register'
 import { SocialAuthPage } from './auth/social-auth/SocialAuth'
 import { Building } from './building/Building'
+import BusyResourcePage from './BusyResourcePage/BusyResourcePage'
 import { Constructor } from './constructor/Constructor'
 import { CreateEquipment } from './createEquipment/createEquipment'
 import { ManageAudiences } from './createRoom/ManageAudiences'
@@ -76,6 +77,10 @@ export const router = createBrowserRouter([
 					{
 						path: PUBLIC_PAGES.MERGEDISCIPLINES,
 						element: <DisciplineGroupAssignment />,
+					},
+					{
+						path: PUBLIC_PAGES.BUSYRESOURCE,
+						element: <BusyResourcePage />,
 					},
 				],
 			},

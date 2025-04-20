@@ -33,7 +33,10 @@ export function Constructor({
 }) {
 	// Пример: айди учебного плана
 	const studyPlanId = 'cm8vhkh5p0013fbt8u1m4wcfc'
+	const groupId = 'cm8vhk8e40012fbt87jkzu0bm'
 	const [selectedSemester, setSelectedSemester] = useState<number>(1)
+
+	console.log(groupId)
 
 	// Zustand store
 	const { disciplines, selectedDiscipline, setDisciplines, toggleDiscipline } =
@@ -280,6 +283,8 @@ export function Constructor({
 							yearOfAdmission={yearOfAdmission}
 							semester={selectedSemester}
 							onSemesterChange={setSelectedSemester}
+							studyPlanId={studyPlanId}
+							groupId={groupId}
 						/>
 					</div>
 				</Splitter.Panel>

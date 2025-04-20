@@ -90,7 +90,7 @@ export class DisciplineService {
 	) {
 		try {
 			const { audienceTypes, wishText } = preferences
-			console.log(audienceTypes, wishText)
+			// console.log(audienceTypes, wishText)
 
 			for (const assignment of audienceTypes) {
 				const existingAssignment =
@@ -355,7 +355,7 @@ export class DisciplineService {
 		semester: number,
 		groupIds: string[]
 	) {
-		console.log(groupIds)
+		// console.log(groupIds)
 
 		// console.log(selectedDisciplineIds)
 		// console.log(groupIds)
@@ -365,7 +365,7 @@ export class DisciplineService {
 			)
 		}
 
-		console.log(groupIds)
+		// console.log(groupIds)
 
 		// Получаем группы по переданным id
 		const groups = await this.prisma.group.findMany({

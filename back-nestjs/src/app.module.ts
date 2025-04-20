@@ -10,6 +10,7 @@ import { EquipmentModule } from './equipment/equipment.module'
 import { GroupModule } from './group/group.module'
 import { ParserModule } from './parser/parser.module'
 import { PositionModule } from './position/position.module'
+import { ScheduleModule } from './schedule/schedule.module'
 import { UploadModule } from './upload/upload.module'
 import { UserModule } from './user/user.module'
 import { WishesModule } from './wish/wish.module'
@@ -32,6 +33,7 @@ import { WishesModule } from './wish/wish.module'
 		DisciplineModule,
 		GroupModule,
 		WishesModule,
+		ScheduleModule,
 	],
 })
 export class AppModule {}

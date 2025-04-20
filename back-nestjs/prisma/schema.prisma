@@ -28,26 +28,28 @@ enum Role {
 }
 
 model Teacher {
-  id           String                        @id @default(uuid())
-  position     Position                      @relation(fields: [positionId], references: [id])
-  department   Department                    @relation(fields: [departmentId], references: [id])
-  user         User                          @relation(fields: [userId], references: [id])
-  userId       String                        @unique
-  departmentId String
-  positionId   String
-  textWishId   String?                       @unique
-  textWish     TextWish?
-  ScheduleWish ScheduleWish[]
-  assignments  TeacherDisciplineAssignment[] @relation("TeacherDisciplineAssignments")
+  id                  String                        @id @default(uuid())
+  position            Position                      @relation(fields: [positionId], references: [id])
+  department          Department                    @relation(fields: [departmentId], references: [id])
+  user                User                          @relation(fields: [userId], references: [id])
+  userId              String                        @unique
+  departmentId        String
+  positionId          String
+  textWishId          String?                       @unique
+  textWish            TextWish?
+  ScheduleWish        ScheduleWish[]
+  assignments         TeacherDisciplineAssignment[] @relation("TeacherDisciplineAssignments")
+  SchedulePairTeacher SchedulePairTeacher[]
 }
 
 model TeacherDisciplineAssignment {
-  id             String        @id @default(cuid())
+  id             String         @id @default(cuid())
   discipline     String // Название дисциплины
   type           String // Например, "lecture" или "practice"
-  teachers       Teacher[]     @relation("TeacherDisciplineAssignments")
-  audienceType   AudienceType? @relation(fields: [audienceTypeId], references: [id])
+  teachers       Teacher[]      @relation("TeacherDisciplineAssignments")
+  audienceType   AudienceType?  @relation(fields: [audienceTypeId], references: [id])
   audienceTypeId String? // Внешний ключ для типа аудитории
+  SchedulePair   SchedulePair[]
 
   @@unique([discipline, type], name: "discipline_type")
 }
@@ -73,15 +75,16 @@ model Department {
 }
 
 model Audience {
-  id             String              @id @default(uuid())
-  title          String
-  type           AudienceType        @relation(fields: [audienceTypeId], references: [id])
-  building       Building            @relation(fields: [buildingId], references: [id])
-  capacity       Int
-  additionalInfo String?
-  equipment      AudienceEquipment[] // Используем таблицу-связку
-  buildingId     String
-  audienceTypeId String
+  id               String              @id @default(uuid())
+  title            String
+  type             AudienceType        @relation(fields: [audienceTypeId], references: [id])
+  building         Building            @relation(fields: [buildingId], references: [id])
+  capacity         Int
+  additionalInfo   String?
+  equipment        AudienceEquipment[] // Используем таблицу-связку
+  buildingId       String
+  audienceTypeId   String
+  SchedulePairRoom SchedulePairRoom[]
 }
 
 model Equipment {
@@ -138,6 +141,7 @@ model StudyPlan {
   disciplines  Discipline[]
   groups       Group[]
   SemesterWeek SemesterWeek[]
+  SchedulePair SchedulePair[]
 }
 
 model SemesterWeek {
@@ -167,12 +171,13 @@ model Group {
   studyPlan      StudyPlan? @relation(fields: [studyPlanId], references: [id])
 
   disciplineAssignments DisciplineGroupAssignment[] @relation("GroupAssignments") // Обратная связь
+  SchedulePairGroup     SchedulePairGroup[]
 
   @@index([studyPlanId], map: "study_plan_idx")
 }
 
 model Discipline {
-  id                  String    @id @default(cuid())
+  id                  String         @id @default(cuid())
   name                String
   semester            Int
   lecture_hours       Int?
@@ -183,7 +188,8 @@ model Discipline {
   el_practice_hours   Int?
   control             String?
   studyPlanId         String
-  studyPlan           StudyPlan @relation(fields: [studyPlanId], references: [id])
+  studyPlan           StudyPlan      @relation(fields: [studyPlanId], references: [id])
+  SchedulePair        SchedulePair[]
 }
 
 model DisciplineGroupAssignment {
@@ -191,4 +197,82 @@ model DisciplineGroupAssignment {
   discipline String // Название дисциплины
   groups     Group[] @relation("GroupAssignments") // Массив групп
   semester   Int // Семестр
+}
+
+enum WeekType {
+  EVEN // чётная
+  ODD // нечётная
+}
+
+enum DayOfWeek {
+  MON
+  TUE
+  WED
+  THU
+  FRI
+  SAT
+  SUN
+}
+
+model TimeSlot {
+  id           String         @id // например, "08:30-10:00"
+  start        String // начало слота, например "08:30"
+  end          String // конец слота, например "10:00"
+  title        String // полное название, например "08:30 — 10:00"
+  SchedulePair SchedulePair[]
+}
+
+model SchedulePair {
+  id         String    @id @default(uuid())
+  halfYear   String // "2021H2"
+  weekType   WeekType
+  dayOfWeek  DayOfWeek
+  timeSlotId String
+  timeSlot   TimeSlot  @relation(fields: [timeSlotId], references: [id])
+
+  studyPlanId String
+  studyPlan   StudyPlan @relation(fields: [studyPlanId], references: [id])
+
+  assignment   TeacherDisciplineAssignment @relation(fields: [assignmentId], references: [id])
+  assignmentId String
+
+  isOnline Boolean @default(false)
+
+  groups       SchedulePairGroup[]
+  teachers     SchedulePairTeacher[]
+  rooms        SchedulePairRoom[]
+  Discipline   Discipline?           @relation(fields: [disciplineId], references: [id])
+  disciplineId String?
+
+  @@index([halfYear, weekType, dayOfWeek, timeSlotId])
+}
+
+model SchedulePairGroup {
+  pairId  String
+  groupId String
+
+  pair  SchedulePair @relation(fields: [pairId], references: [id])
+  group Group        @relation(fields: [groupId], references: [id])
+
+  @@id([pairId, groupId])
+}
+
+model SchedulePairTeacher {
+  pairId    String
+  teacherId String
+
+  pair    SchedulePair @relation(fields: [pairId], references: [id])
+  teacher Teacher      @relation(fields: [teacherId], references: [id])
+
+  @@id([pairId, teacherId])
+}
+
+model SchedulePairRoom {
+  pairId     String
+  audienceId String
+
+  pair     SchedulePair @relation(fields: [pairId], references: [id])
+  audience Audience     @relation(fields: [audienceId], references: [id])
+
+  @@id([pairId, audienceId])
 }

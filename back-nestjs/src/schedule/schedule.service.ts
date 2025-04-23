@@ -166,19 +166,33 @@ export class ScheduleService {
 	}
 
 	/** Занятость преподавателя: возвращаем карту BusyMap */
-	async findBusyTeachers(
-		teacherId: string,
-		halfYear: string
-	): Promise<BusyMap> {
-		const raw = await this.prisma.schedulePairTeacher.findMany({
-			where: { teacherId, pair: { halfYear } },
-			select: {
-				pair: {
-					select: { weekType: true, dayOfWeek: true, timeSlotId: true },
+	/** Занятость преподавателя: возвращаем карту BusyMap */
+	async findBusyTeachers(teacherId: string, halfYear: string): Promise<any> {
+		return this.prisma.schedulePair.findMany({
+			where: {
+				halfYear,
+				teachers: {
+					some: { teacherId },
+				},
+			},
+			include: {
+				timeSlot: true,
+				groups: { include: { group: true } },
+				rooms: { include: { audience: true } },
+				teachers: {
+					include: {
+						teacher: {
+							include: { user: true },
+						},
+					},
+				},
+				assignment: {
+					include: {
+						teachers: { include: { user: true } },
+					},
 				},
 			},
 		})
-		return this.groupBySlot(raw.map(r => r.pair))
 	}
 
 	/** Преобразует русский день недели в enum DayOfWeek */

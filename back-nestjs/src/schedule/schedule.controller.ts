@@ -39,6 +39,7 @@ export class ScheduleController {
 		@Param('teacherId') teacherId: string,
 		@Query('halfYear') halfYear: string
 	) {
-		return this.service.findBusyTeachers(teacherId, halfYear)
+		const result = await this.service.findBusyTeachers(teacherId, halfYear)
+		return result
 	}
 }

@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query'
-import { Card, Popover, Segmented, Select, Space, Spin, Table } from 'antd'
+import { Card, Segmented, Select, Space, Spin, Table } from 'antd'
 import React, { useMemo, useState } from 'react'
 
 import audienceService from '@/services/room/audience.service'
@@ -42,7 +42,7 @@ const BusyResourcePage: React.FC<BusyResourcePageProps> = ({
 	const [resourceType, setResourceType] = useState<'teacher' | 'room'>(
 		'teacher'
 	)
-	const [resourceId, setResourceId] = useState<string | null>(null)
+	const [resourceId, setResourceId] = useState<string | undefined>(undefined)
 	const [halfYearCode, setHalfYearCode] = useState<string>('2021H1')
 	const [isEvenWeek, setIsEvenWeek] = useState<boolean>(true)
 
@@ -95,42 +95,38 @@ const BusyResourcePage: React.FC<BusyResourcePageProps> = ({
 			render: (_: any, rec: { hour: string }) => {
 				const key = `${day}-${rec.hour}`
 				const pairs = slotsMap[key]
-				if (!pairs || !pairs.length) return <span>Свободно</span>
+				if (!pairs || !pairs.length) {
+					return <span>Свободно</span>
+				}
 				return (
-					<Popover
-						title='Занятость'
-						content={
-							<div style={{ minWidth: 200 }}>
-								{pairs.map(p => (
-									<div key={p.id} style={{ marginBottom: 8 }}>
-										<div>
-											<b>{p.assignment.discipline}</b> —{' '}
-											<em>
-												{ruTypeMap[p.assignment.type] || p.assignment.type}
-											</em>
-										</div>
-										{p.teachers?.length > 0 && (
-											<div>
-												Преподаватель:{' '}
-												{p.teachers
-													.map(t =>
-														`${t.teacher?.user?.lastName || ''} ${
-															t.teacher?.user?.firstName || ''
-														}`.trim()
-													)
-													.join(', ')}
-											</div>
-										)}
-										Группы: {p.groups.map(g => g.group.title).join(', ')}
+					<div className='text-left space-y-2'>
+						{pairs.map(p => (
+							<div key={p.id} className='border rounded p-2'>
+								<div className='font-medium'>
+									{p.assignment.discipline}{' '}
+									<em>({ruTypeMap[p.assignment.type] || p.assignment.type})</em>
+								</div>
+								{p.teachers?.length > 0 && (
+									<div>
+										<span className='font-semibold'>Преподаватель: </span>
+										{p.teachers
+											.map(t =>
+												`${t.teacher?.user?.lastName || ''} ${
+													t.teacher?.user?.firstName || ''
+												}
+												${t.teacher?.user?.middleName || ''}
+												`.trim()
+											)
+											.join(', ')}
 									</div>
-								))}
+								)}
+								<div>
+									<span className='font-semibold'>Группы: </span>
+									{p.groups.map(g => g.group.title).join(', ')}
+								</div>
 							</div>
-						}
-					>
-						<span style={{ color: 'red', cursor: 'pointer' }}>
-							Занято ({pairs.length})
-						</span>
-					</Popover>
+						))}
+					</div>
 				)
 			},
 		})),
@@ -147,7 +143,7 @@ const BusyResourcePage: React.FC<BusyResourcePageProps> = ({
 					value={resourceType}
 					onChange={val => {
 						setResourceType(val as 'teacher' | 'room')
-						setResourceId(null)
+						setResourceId(undefined)
 					}}
 				/>
 
@@ -160,14 +156,18 @@ const BusyResourcePage: React.FC<BusyResourcePageProps> = ({
 					}
 					options={
 						resourceType === 'teacher'
-							? teachers.map(u => ({
-									value: u.teacher?.id!,
-									label: `${u.lastName} ${u.firstName}`,
-							  }))
+							? teachers
+									.filter(u => u.Teacher?.id != null)
+									.map(u => ({
+										value: String(u.Teacher!.id),
+										label: `${u.lastName} ${u.firstName} ${u?.middleName}`,
+									}))
 							: rooms.map(r => ({ value: r.id, label: r.title }))
 					}
 					value={resourceId}
 					onChange={setResourceId}
+					allowClear
+					showSearch
 				/>
 
 				<Select

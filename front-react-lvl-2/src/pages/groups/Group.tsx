@@ -1,5 +1,5 @@
 import groupService from '@/services/group/group.service'
-import { DeleteOutlined, EditOutlined } from '@ant-design/icons'
+import { DeleteOutlined, EditOutlined, EyeOutlined } from '@ant-design/icons'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import {
 	Button,
@@ -12,6 +12,7 @@ import {
 	Typography,
 } from 'antd'
 import { useState } from 'react'
+import { Link } from 'react-router-dom'
 
 export interface Group {
 	id: string
@@ -185,32 +186,43 @@ export function Group() {
 			render: (text: string) => text || '',
 		},
 		{
-			title: 'ID учебного плана',
-			dataIndex: 'studyPlanId',
-			key: 'studyPlanId',
-			render: (text: string) => text || '',
-		},
-		{
 			title: 'Действия',
 			key: 'actions',
-			render: (text: string, group: Group) => (
-				<>
-					<Tooltip title='Редактировать'>
-						<Button
-							type='link'
-							icon={<EditOutlined />}
-							onClick={() => openModal('edit', group)}
-						/>
-					</Tooltip>
-					<Tooltip title='Удалить'>
-						<Button
-							type='link'
-							icon={<DeleteOutlined />}
-							onClick={() => openModal('delete', group)}
-						/>
-					</Tooltip>
-				</>
-			),
+			render: (text: string, group: Group) => {
+				const year = group.yearEnrollment
+					? new Date(group.yearEnrollment).getFullYear()
+					: ''
+				const studyPlanId = group.studyPlanId
+				const groupId = group.id
+
+				return (
+					<>
+						{year && studyPlanId && (
+							<Tooltip title='Просмотреть в конструкторе'>
+								<Link
+									to={`/constructor?groupId=${groupId}&studyPlanId=${studyPlanId}&yearOfAdmission=${year}`}
+								>
+									<Button type='link' icon={<EyeOutlined />} />
+								</Link>
+							</Tooltip>
+						)}
+						<Tooltip title='Редактировать'>
+							<Button
+								type='link'
+								icon={<EditOutlined />}
+								onClick={() => openModal('edit', group)}
+							/>
+						</Tooltip>
+						<Tooltip title='Удалить'>
+							<Button
+								type='link'
+								icon={<DeleteOutlined />}
+								onClick={() => openModal('delete', group)}
+							/>
+						</Tooltip>
+					</>
+				)
+			},
 		},
 	]
 

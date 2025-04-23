@@ -9,6 +9,7 @@ import wishesService from '@/services/wishes/wishes.service'
 import GridComponent from './GridComponent'
 
 import usersService from '@/services/user/users.service'
+import { useLocation } from 'react-router-dom'
 import styles from './style.module.scss'
 
 /**
@@ -21,19 +22,22 @@ function roundPairs(value: number, hoursPerPair = 17) {
 	return fraction >= 0.5 ? Math.ceil(raw) : Math.floor(raw)
 }
 
+function useQueryParams() {
+	const { search } = useLocation()
+	return new URLSearchParams(search)
+}
+
 const typeMap: Record<string, string> = {
 	Лекция: 'lecture',
 	Практика: 'practice',
 	Лабораторная: 'lab',
 }
-export function Constructor({
-	yearOfAdmission = 2021,
-}: {
-	yearOfAdmission: number
-}) {
+export function Constructor() {
 	// Пример: айди учебного плана
-	const studyPlanId = 'cm8vhkh5p0013fbt8u1m4wcfc'
-	const groupId = 'cm8vhk8e40012fbt87jkzu0bm'
+	const query = useQueryParams()
+	const yearOfAdmission = Number(query.get('yearOfAdmission'))
+	const studyPlanId = query.get('studyPlanId') || ''
+	const groupId = query.get('groupId') || ''
 	const [selectedSemester, setSelectedSemester] = useState<number>(1)
 
 	console.log(groupId)

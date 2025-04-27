@@ -5,7 +5,10 @@ import {
 	Injectable,
 	NotFoundException,
 } from '@nestjs/common'
-import { BulkScheduleDto } from './dto/bulk-schedule.dto'
+import {
+	BulkScheduleDistanceDto,
+	BulkScheduleDto,
+} from './dto/bulk-schedule.dto'
 
 export interface BusyMap {
 	even: Record<string, { rooms?: string[]; teachers?: string[] }>
@@ -111,6 +114,180 @@ export class ScheduleService {
 		}
 
 		return Promise.all(creations)
+	}
+
+	/** Сохраняет расписание для заочной группы */
+	async bulkCreateDistance(dto: BulkScheduleDistanceDto) {
+		const { studyPlanId, groupId, halfYear, schedule } = dto
+
+		const pairs = await this.prisma.schedulePair.findMany({
+			where: { studyPlanId, halfYear },
+			select: { id: true },
+		})
+		const pairIds = pairs.map(p => p.id)
+
+		// 2–5) удаляем связи «пара→группа», «пара→кабинет», «пара→преподаватель» и сами пары
+		await this.prisma.schedulePairGroup.deleteMany({
+			where: { pairId: { in: pairIds }, groupId },
+		})
+		await this.prisma.schedulePairRoom.deleteMany({
+			where: { pairId: { in: pairIds } },
+		})
+		await this.prisma.schedulePairTeacher.deleteMany({
+			where: { pairId: { in: pairIds } },
+		})
+		await this.prisma.schedulePair.deleteMany({
+			where: { id: { in: pairIds } },
+		})
+
+		// 6) создаём новые записи для заочной группы
+		const creations = []
+
+		// Перебираем недели (week1, week2, week3, week4)
+		for (const [weekKey, slots] of Object.entries(schedule) as [
+			'week1' | 'week2' | 'week3' | 'week4',
+			typeof schedule.week1,
+		][]) {
+			const numberWeek = parseInt(weekKey.replace('week', ''), 10) // Номер недели (1, 2, 3, 4)
+
+			for (const [daySlot, data] of Object.entries(slots)) {
+				// находим assignment по дисциплине и типу
+				const assignment =
+					await this.prisma.teacherDisciplineAssignment.findUnique({
+						where: {
+							discipline_type: {
+								discipline: data.disciplineName,
+								type: data.type,
+							},
+						},
+					})
+				if (!assignment) {
+					throw new NotFoundException(
+						`Assignment not found for ${data.disciplineName} (${data.type})`
+					)
+				}
+
+				const slotId = daySlot
+					.split('-', 2)[1]
+					.trim()
+					.replace(/\s*—\s*/, '-')
+
+				creations.push(
+					this.prisma.schedulePair.create({
+						data: {
+							halfYear,
+							numberWeek,
+							dayOfWeek: this.mapDay(daySlot.split('-', 1)[0]),
+							timeSlot: {
+								connectOrCreate: {
+									where: { id: slotId },
+									create: {
+										id: slotId,
+										start: slotId.split('-')[0],
+										end: slotId.split('-')[1],
+										title: daySlot.split('-', 2)[1].trim(),
+									},
+								},
+							},
+							studyPlan: { connect: { id: studyPlanId } },
+							assignment: { connect: { id: assignment.id } },
+							isOnline: data.isOnline,
+							groups: {
+								create: { group: { connect: { id: groupId } } },
+							},
+							rooms: data.roomId && {
+								create: { audience: { connect: { id: data.roomId } } },
+							},
+							teachers: data.teacherIds && {
+								create: data.teacherIds.map(tid => ({
+									teacher: { connect: { id: tid } },
+								})),
+							},
+						},
+					})
+				)
+			}
+		}
+
+		console.log('Создание пар для заочной группы:', creations)
+
+		return Promise.all(creations)
+	}
+
+	async getDistanceSchedule(
+		groupId: string,
+		studyPlanId: string,
+		halfYear: string
+	) {
+		// Логируем полученные параметры
+		console.log('Received parameters:', { groupId, studyPlanId, halfYear })
+
+		// Получаем все пары для заданного studyPlanId, groupId и halfYear через таблицу SchedulePairGroup
+		const pairs = await this.prisma.schedulePair.findMany({
+			where: {
+				studyPlanId, // фильтруем по studyPlanId
+				halfYear, // фильтруем по полугодию
+				groups: {
+					// фильтруем через связь с группами
+					some: { groupId }, // ищем группы, которые связаны с данной парой
+				},
+			},
+			include: {
+				timeSlot: true,
+				groups: { include: { group: true } }, // загружаем группы
+				assignment: {
+					include: {
+						teachers: true, // загружаем преподавателей
+					},
+				},
+				teachers: {
+					include: {
+						teacher: { include: { user: true } }, // загружаем информацию о преподавателе
+					},
+				},
+				rooms: {
+					include: { audience: true }, // загружаем аудитории
+				},
+			},
+		})
+
+		// Логируем полученные пары
+		console.log('Fetched pairs:', pairs)
+
+		// Если нет пар, возвращаем пустой объект
+		if (!pairs.length) {
+			console.log('No pairs found for the provided parameters')
+			return { week1: {}, week2: {}, week3: {}, week4: {} }
+		}
+
+		// Создаем расписание
+		const schedule = {
+			week1: {},
+			week2: {},
+			week3: {},
+			week4: {},
+		}
+
+		// Заполняем расписание по неделям
+		pairs.forEach(pair => {
+			const daySlot = `${pair.dayOfWeek}-${pair.timeSlot.title}` // Преобразуем день недели и время
+			const weekKey = `week${pair.numberWeek}` // Номер недели (1, 2, 3, 4)
+
+			console.log(`Adding pair to ${weekKey}: ${daySlot}`) // Логируем, какую пару добавляем в расписание
+
+			schedule[weekKey][daySlot] = {
+				disciplineName: pair.assignment.discipline, // Название дисциплины
+				type: pair.assignment.type, // Тип дисциплины
+				isOnline: pair.isOnline, // Статус онлайн
+				roomId: pair.rooms[0]?.audience.id, // ID аудитории
+				teacherIds: pair.teachers.map(t => t.teacher.id), // Список ID преподавателей
+			}
+		})
+
+		// Логируем финальное расписание
+		console.log('Final schedule:', schedule)
+
+		return schedule
 	}
 
 	/** Расписание одной группы за полугодие + неделю */

@@ -1,6 +1,9 @@
 import { WeekType } from '.prisma/client'
 import { Body, Controller, Get, Param, Post, Query } from '@nestjs/common'
-import { BulkScheduleDto } from './dto/bulk-schedule.dto'
+import {
+	BulkScheduleDistanceDto,
+	BulkScheduleDto,
+} from './dto/bulk-schedule.dto'
 import { ScheduleService } from './schedule.service'
 
 @Controller('schedule')
@@ -11,6 +14,26 @@ export class ScheduleController {
 	@Post()
 	async bulkCreate(@Body() dto: BulkScheduleDto) {
 		return this.service.bulkCreate(dto)
+	}
+
+	@Post('distance')
+	async bulkCreateDistance(@Body() dto: BulkScheduleDistanceDto) {
+		return this.service.bulkCreateDistance(dto) // Новый метод для заочной группы
+	}
+
+	// Получение расписания заочной группы
+	@Get('distance')
+	async getDistanceSchedule(
+		@Query('groupId') groupId: string,
+		@Query('studyPlanId') studyPlanId: string,
+		@Query('halfYear') halfYear: string
+	) {
+		const result = await this.service.getDistanceSchedule(
+			groupId,
+			studyPlanId,
+			halfYear
+		)
+		return result
 	}
 
 	/** Получить расписание группы */

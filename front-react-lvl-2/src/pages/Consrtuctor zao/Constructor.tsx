@@ -8,6 +8,7 @@ import { v4 as uuidv4 } from 'uuid'
 import wishesService from '@/services/wishes/wishes.service'
 import GridComponent from './GridComponent'
 
+import scheduleService from '@/services/schedule/schedule.service'
 import usersService from '@/services/user/users.service'
 import { useLocation } from 'react-router-dom'
 import styles from './style.module.scss'
@@ -17,7 +18,6 @@ import styles from './style.module.scss'
  * с вашим порогом 17 ч/пара и округлением до ближайшего целого.
  */
 function roundPairs(value: number, hoursPerPair = 2) {
-	console.warn(value)
 	const raw = value / hoursPerPair
 	const fraction = raw - Math.floor(raw)
 	return fraction >= 0.5 ? Math.ceil(raw) : Math.floor(raw)
@@ -33,15 +33,14 @@ const typeMap: Record<string, string> = {
 	Практика: 'practice',
 	Лабораторная: 'lab',
 }
-export function Constructor() {
+export function ZaoConstructor() {
 	// Пример: айди учебного плана
 	const query = useQueryParams()
 	const yearOfAdmission = Number(query.get('yearOfAdmission'))
 	const studyPlanId = query.get('studyPlanId') || ''
 	const groupId = query.get('groupId') || ''
+	const [selectedWeek, setSelectedWeek] = useState<number>(1) // недели 1-4
 	const [selectedSemester, setSelectedSemester] = useState<number>(1)
-
-	// console.log(groupId)
 
 	// Zustand store
 	const { disciplines, selectedDiscipline, setDisciplines, toggleDiscipline } =
@@ -94,9 +93,56 @@ export function Constructor() {
 		queryFn: () => disciplineService.getAllTeacherPairs(),
 	})
 
-	// console.log(disciplinesWishesAll)
+	const [scheduleData, setScheduleData] = useState<any>({
+		week1: {},
+		week2: {},
+		week3: {},
+		week4: {},
+	})
 
-	// console.log(usersData)
+	// Запрос на получение расписания заочной группы
+	useEffect(() => {
+		if (studyPlanId && groupId && yearOfAdmission) {
+			scheduleService
+				.getDistanceSchedule(
+					groupId,
+					studyPlanId,
+					`${yearOfAdmission}H${selectedSemester}`
+				)
+				.then(data => {
+					setScheduleData(data)
+				})
+				.catch(error => {
+					console.error('Ошибка при загрузке расписания:', error)
+				})
+		}
+	}, [studyPlanId, groupId, yearOfAdmission, selectedSemester])
+
+	console.log(scheduleData)
+
+	const formatScheduleData = (data: any) => {
+		const schedule = {
+			week1: {},
+			week2: {},
+			week3: {},
+			week4: {},
+		}
+
+		Object.entries(data).forEach(([weekKey, weekData]) => {
+			Object.entries(weekData).forEach(([daySlot, slotData]) => {
+				const [day, time] = daySlot.split('-')
+				schedule[weekKey][daySlot] = {
+					disciplineName: slotData.disciplineName,
+					type: slotData.type,
+					isOnline: slotData.isOnline,
+					roomId: slotData.roomId,
+					teacherIds: slotData.teacherIds,
+				}
+			})
+		})
+
+		return schedule
+	}
 
 	// Группировка пожеланий по преподавателю
 	const groupedWishes = wishesResponse.reduce((acc: any, wish: any) => {
@@ -122,7 +168,6 @@ export function Constructor() {
 		if (!disciplinesData.length || !disciplinesWishesAll) return
 
 		const generated = disciplinesData
-			// К примеру, фильтруем по первому семестру (как было в примере)
 			.filter(d => d.semester === selectedSemester)
 			.flatMap(d => {
 				const {
@@ -196,9 +241,13 @@ export function Constructor() {
 		})
 
 		setDisciplines(withTeachers)
-	}, [disciplinesData, disciplinesWishesAll, selectedSemester, setDisciplines])
-
-	// console.log(disciplines)
+	}, [
+		disciplinesData,
+		disciplinesWishesAll,
+		selectedSemester,
+		selectedWeek,
+		setDisciplines,
+	])
 
 	// Запрос на получение дисциплин
 	const {
@@ -290,6 +339,7 @@ export function Constructor() {
 							onSemesterChange={setSelectedSemester}
 							studyPlanId={studyPlanId}
 							groupId={groupId}
+							scheduleData={scheduleData}
 						/>
 					</div>
 				</Splitter.Panel>
@@ -299,8 +349,6 @@ export function Constructor() {
 					<div className='h-full overflow-auto p-4'>
 						{selectedDiscipline ? (
 							(() => {
-								// console.log(selectedDiscipline.disciplineName)
-								// console.log(disciplinesWishes)
 								const matchingWish = disciplinesWishes?.find(
 									wish => wish.discipline === selectedDiscipline.disciplineName
 								)

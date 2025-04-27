@@ -200,7 +200,7 @@ export function Group() {
 						{year && studyPlanId && (
 							<Tooltip title='Просмотреть в конструкторе'>
 								<Link
-									to={`/constructor?groupId=${groupId}&studyPlanId=${studyPlanId}&yearOfAdmission=${year}`}
+									to={`/zao-constructor?groupId=${groupId}&studyPlanId=${studyPlanId}&yearOfAdmission=${year}`}
 								>
 									<Button type='link' icon={<EyeOutlined />} />
 								</Link>

@@ -225,7 +225,8 @@ model TimeSlot {
 model SchedulePair {
   id         String    @id @default(uuid())
   halfYear   String // "2021H2"
-  weekType   WeekType
+  weekType   WeekType?
+  numberWeek Int?
   dayOfWeek  DayOfWeek
   timeSlotId String
   timeSlot   TimeSlot  @relation(fields: [timeSlotId], references: [id])
@@ -245,6 +246,7 @@ model SchedulePair {
   disciplineId String?
 
   @@index([halfYear, weekType, dayOfWeek, timeSlotId])
+  @@index([halfYear, numberWeek, dayOfWeek, timeSlotId])
 }
 
 model SchedulePairGroup {

@@ -19,6 +19,7 @@ class PublicPages {
 	SETPAIRSTOTEACHER = '/setpairs'
 	MERGEDISCIPLINES = '/merge-disciplines'
 	BUSYRESOURCE = '/busy-resource'
+	ZAOCONSTRUCTOR = '/zao-constructor'
 }
 
 export const PUBLIC_PAGES = new PublicPages()

@@ -42,8 +42,6 @@ const GridComponent: React.FC<GridComponentProps> = ({
 		Record<string /*roomId*/, ScheduledPair[]>
 	>({})
 
-	// console.log(selectedDiscipline)
-
 	const {
 		data: usersData,
 		isLoadingUser,
@@ -60,8 +58,6 @@ const GridComponent: React.FC<GridComponentProps> = ({
 		},
 	})
 
-	// console.log(usersData)
-
 	// Подтягиваем список аудиторий (для назначения кабинета)
 	const {
 		data: rooms = [],
@@ -73,27 +69,33 @@ const GridComponent: React.FC<GridComponentProps> = ({
 	})
 	const roomTitles = rooms.map(r => r.title)
 
-	// Храним отдельный объект с отмеченными ячейками для чётной и нечётной недели
 	const [selectedCells, setSelectedCells] = useState<{
-		even: Record<string, CellData>
-		odd: Record<string, CellData>
+		week1: Record<string, CellData>
+		week2: Record<string, CellData>
+		week3: Record<string, CellData>
+		week4: Record<string, CellData>
 	}>({
-		even: {},
-		odd: {},
+		week1: {},
+		week2: {},
+		week3: {},
+		week4: {},
 	})
 
 	useEffect(() => {
-		setSelectedCells({ even: {}, odd: {} })
+		setSelectedCells({
+			week1: {},
+			week2: {},
+			week3: {},
+			week4: {},
+		})
 	}, [semester])
 
-	// Чётная или нечётная неделя
-	const [isEvenWeek, setIsEvenWeek] = useState(true)
+	// Работаем с неделей 1, 2, 3, 4
+	const [week, setWeek] = useState(1)
+	const weeks = [1, 2, 3, 4]
+	const [startWithOddWeek, setStartWithOddWeek] = useState(true)
 
-	const handleSegmentedChange = useCallback((val: string | number) => {
-		setIsEvenWeek(val === 'even')
-	}, [])
-
-	const weekKey = isEvenWeek ? 'even' : 'odd'
+	const weekKey = `week${week}` // Используем week вместо even/odd
 
 	/**
 	 * Функция для «поставить пару»: вызывается при клике
@@ -106,18 +108,12 @@ const GridComponent: React.FC<GridComponentProps> = ({
 				return
 			}
 
-			// Проверяем, остались ли пары (и онлайн-пары, если надо)
-
-			// console.log(selectedDiscipline)
-			// console.log(isOnline, selectedDiscipline.onlinePossible)
-
 			const key = `${day}-${hour}`
-			const oldCell = selectedCells[weekKey][key]
+			const oldCell = selectedCells[weekKey]?.[key] // Защищаем от undefined
 			const isEditing =
 				oldCell && oldCell.disciplineId === selectedDiscipline.id
 
 			if (!isEditing) {
-				// Если пара ставится впервые, проверяем наличие свободной пары и (для онлайн) свободной онлайн-пары
 				if (selectedDiscipline.totalPairs <= 0) {
 					message.warning('У дисциплины не осталось свободных пар.')
 					return
@@ -127,8 +123,6 @@ const GridComponent: React.FC<GridComponentProps> = ({
 					return
 				}
 			} else {
-				// Редактирование уже вставленной пары
-				// При конверсии с офлайн в онлайн проверяем наличие online-пар
 				if (
 					isOnline &&
 					!oldCell!.isOnline &&
@@ -137,32 +131,34 @@ const GridComponent: React.FC<GridComponentProps> = ({
 					message.warning('У дисциплины не осталось онлайн-пар.')
 					return
 				}
-				// Для других вариантов редактирования (например, онлайн → офлайн или без изменения типа)
-				// не требуется дополнительно проверять свободные пары
 			}
 
-			// Обновляем состояние ячейки расписания
+			// Обновляем состояние ячейки для выбранной недели
 			setSelectedCells(prev => {
 				const copy = { ...prev[weekKey] }
 
-				// Если ячейка уже занята выбранной дисциплиной
-				// и мы изменяем тип пары, возвращаем старую пару в счетчики
-				if (isEditing && oldCell && oldCell.isOnline !== isOnline) {
-					incrementPair(oldCell.disciplineId, oldCell.isOnline)
+				// Если ячейка ещё не существует, создаём её
+				if (!copy[key]) {
+					copy[key] = {
+						disciplineId: selectedDiscipline.id,
+						discipline: `${selectedDiscipline.disciplineName} (${selectedDiscipline.type})`,
+						isOnline,
+						room: '',
+						teacherId: selectedDiscipline.teacherIds?.[0] ?? undefined,
+					}
+				} else {
+					// Если ячейка уже занята, обновляем её
+					copy[key] = {
+						...copy[key],
+						disciplineId: selectedDiscipline.id,
+						discipline: `${selectedDiscipline.disciplineName} (${selectedDiscipline.type})`,
+						isOnline,
+					}
 				}
 
-				copy[key] = {
-					disciplineId: selectedDiscipline.id,
-					discipline: `${selectedDiscipline.disciplineName} (${selectedDiscipline.type})`,
-					isOnline,
-					room: '',
-					teacherId: selectedDiscipline.teacherIds?.[0] ?? undefined,
-				}
-
-				return { ...prev, [weekKey]: copy }
+				return { ...prev, [weekKey]: copy } // Обновляем выбранную неделю
 			})
 
-			// Обновляем состояние дисциплины: уменьшаем нужный счётчик согласно новому назначению
 			decrementPair(selectedDiscipline.id, isOnline)
 		},
 		[selectedDiscipline, decrementPair, incrementPair, weekKey]
@@ -233,7 +229,7 @@ const GridComponent: React.FC<GridComponentProps> = ({
 			align: 'center' as const,
 			render: (_: any, record: { hour: string }) => {
 				const key = `${day}-${record.hour}`
-				const cellData = selectedCells[weekKey][key]
+				const cellData = selectedCells[weekKey]?.[key] // Защищаем от undefined
 
 				return (
 					<GridCell
@@ -251,7 +247,7 @@ const GridComponent: React.FC<GridComponentProps> = ({
 						placePair={placePair}
 						removePair={removePair}
 						setRoom={setRoom}
-						setTeacher={setTeacher} // Передаем setTeacher
+						setTeacher={setTeacher}
 					/>
 				)
 			},
@@ -272,42 +268,37 @@ const GridComponent: React.FC<GridComponentProps> = ({
 	}
 
 	const handleSave = useCallback(async () => {
-		const scheduleDto: BulkScheduleDto['schedule'] = { even: {}, odd: {} }
+		// Инициализация объекта scheduleDto для всех недель
+		const scheduleDto = { week1: {}, week2: {}, week3: {}, week4: {} }
 
+		// Логируем начальный объект, который будем отправлять на сервер
+		console.log('Начальное состояние scheduleDto:', scheduleDto)
+
+		// Функция для поиска roomId по названию
 		function findRoomIdByTitle(title: string): string | undefined {
 			return rooms.find(r => r.title === title)?.id
 		}
 
-		for (const [key, cell] of Object.entries(selectedCells.even)) {
-			const disciplineStr = cell.discipline!
-			const typeMatch = disciplineStr.match(/\((Лекция|Практика)\)/)
-			if (!typeMatch) return
+		// Заполняем расписание для каждой недели
+		for (let i = 1; i <= 4; i++) {
+			const weekKey = `week${i}`
 
-			const typeKey = typeMatch[1]
-			const disciplineName = disciplineStr.slice(0, typeMatch.index).trim()
+			for (const [key, cell] of Object.entries(selectedCells[weekKey])) {
+				const disciplineStr = cell.discipline!
+				const typeMatch = disciplineStr.match(/\((Лекция|Практика)\)/)
+				if (!typeMatch) return
 
-			scheduleDto.even[key] = {
-				disciplineName,
-				type: typeMap[typeKey],
-				isOnline: cell.isOnline!,
-				...(cell.room ? { roomId: findRoomIdByTitle(cell.room)! } : {}),
-				...(cell.teacherId ? { teacherIds: [cell.teacherId] } : {}),
-			}
-		}
+				const typeKey = typeMatch[1]
+				const disciplineName = disciplineStr.slice(0, typeMatch.index).trim()
 
-		console.log(selectedCells.odd)
-
-		for (const [key, cell] of Object.entries(selectedCells.odd)) {
-			const [name, typeLabel] = cell.discipline!.split('(')
-			const disciplineName = name.trim()
-			const typeKey = typeLabel.replace(')', '').trim()
-			console.log(typeKey)
-			scheduleDto.odd[key] = {
-				disciplineName,
-				type: typeMap[typeKey],
-				isOnline: cell.isOnline!,
-				...(cell.room ? { roomId: findRoomIdByTitle(cell.room)! } : {}),
-				...(cell.teacherId ? { teacherIds: [cell.teacherId] } : {}),
+				// Заполняем расписание для каждой ячейки
+				scheduleDto[weekKey][key] = {
+					disciplineName,
+					type: typeMap[typeKey],
+					isOnline: cell.isOnline!,
+					...(cell.room ? { roomId: findRoomIdByTitle(cell.room)! } : {}),
+					...(cell.teacherId ? { teacherIds: [cell.teacherId] } : {}),
+				}
 			}
 		}
 
@@ -319,14 +310,17 @@ const GridComponent: React.FC<GridComponentProps> = ({
 			schedule: scheduleDto,
 		}
 
-		// 3. Вызываем сервис
+		// Логируем объект payload перед отправкой
+		console.log('Payload, который отправляется на сервер:', payload)
+
+		// Отправляем данные на сервер
 		try {
-			await scheduleService.bulkCreate(payload)
+			await scheduleService.bulkCreateDistance(payload)
 			message.success('Расписание сохранено на сервере')
 		} catch {
 			message.error('Ошибка при сохранении расписания')
 		}
-	}, [selectedCells, halfYearCode, groupId, studyPlanId, typeMap])
+	}, [selectedCells, halfYearCode, groupId, studyPlanId, typeMap, rooms])
 
 	useEffect(() => {
 		if (!rooms.length) return
@@ -339,7 +333,6 @@ const GridComponent: React.FC<GridComponentProps> = ({
 						r.id,
 						halfYearCode
 					)
-					console.log(r.id, pairs)
 					return [r.id, pairs] as const
 				})
 			)
@@ -351,20 +344,27 @@ const GridComponent: React.FC<GridComponentProps> = ({
 		}
 	}, [rooms, halfYearCode])
 
-	useEffect(() => {
-		console.log('🔴 busyPairsByRoom keys:', Object.keys(busyPairsByRoom))
-		console.log(busyPairsByRoom)
-	}, [busyPairsByRoom])
-
 	const getBusyPairs = useCallback(
 		(roomId: string, day: string, hour: string): ScheduledPair[] => {
 			const all = busyPairsByRoom[roomId] ?? []
-			const wk = isEvenWeek ? 'EVEN' : 'ODD'
+
+			// В зависимости от того, с какой недели начинаем
+			const weekType = startWithOddWeek
+				? week % 2 === 0
+					? 'EVEN'
+					: 'ODD'
+				: week % 2 === 0
+				? 'ODD'
+				: 'EVEN'
+
 			return all.filter(
-				p => p.weekType === wk && p.dayOfWeek === day && p.timeSlotId === hour
+				p =>
+					p.weekType === weekType &&
+					p.dayOfWeek === day &&
+					p.timeSlotId === hour
 			)
 		},
-		[busyPairsByRoom, isEvenWeek]
+		[busyPairsByRoom, week, startWithOddWeek]
 	)
 
 	return (
@@ -382,12 +382,17 @@ const GridComponent: React.FC<GridComponentProps> = ({
 					onChange={val => onSemesterChange(val as number)}
 				/>
 				<Segmented
+					options={weeks.map(w => ({ label: `${w}`, value: w }))}
+					value={week}
+					onChange={setWeek}
+				/>
+				<Segmented
 					options={[
-						{ label: 'Чётная неделя', value: 'even' },
-						{ label: 'Нечётная неделя', value: 'odd' },
+						{ label: 'Начать с нечётной', value: true },
+						{ label: 'Начать с чётной', value: false },
 					]}
-					value={isEvenWeek ? 'even' : 'odd'}
-					onChange={handleSegmentedChange}
+					value={startWithOddWeek}
+					onChange={setStartWithOddWeek}
 				/>
 			</div>
 

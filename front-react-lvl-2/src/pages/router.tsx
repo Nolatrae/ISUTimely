@@ -10,6 +10,7 @@ import RegisterPage from './auth/register/Register'
 import { SocialAuthPage } from './auth/social-auth/SocialAuth'
 import { Building } from './building/Building'
 import BusyResourcePage from './BusyResourcePage/BusyResourcePage'
+import { ZaoConstructor } from './Consrtuctor zao/Constructor'
 import { Constructor } from './constructor/Constructor'
 import { CreateEquipment } from './createEquipment/createEquipment'
 import { ManageAudiences } from './createRoom/ManageAudiences'
@@ -81,6 +82,10 @@ export const router = createBrowserRouter([
 					{
 						path: PUBLIC_PAGES.BUSYRESOURCE,
 						element: <BusyResourcePage />,
+					},
+					{
+						path: PUBLIC_PAGES.ZAOCONSTRUCTOR,
+						element: <ZaoConstructor />,
 					},
 				],
 			},

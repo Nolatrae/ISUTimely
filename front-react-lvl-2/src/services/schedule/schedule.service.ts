@@ -58,6 +58,32 @@ class ScheduleService {
 		}
 	}
 
+	async bulkCreateDistance(data: BulkScheduleDto): Promise<void> {
+		try {
+			await instance.post(`${this.BASE}/distance`, data)
+		} catch (error) {
+			console.error('Error saving distance schedule bulk:', error)
+			throw error
+		}
+	}
+
+	async getDistanceSchedule(
+		groupId: string,
+		studyPlanId: string,
+		halfYear: string
+	): Promise<any> {
+		try {
+			const resp = await instance.get<any>(`${this.BASE}/distance`, {
+				params: { groupId, studyPlanId, halfYear },
+			})
+			console.log(resp.data)
+			return resp.data // Возвращаем расписание заочной группы
+		} catch (error) {
+			console.error('Error fetching distance schedule:', error)
+			throw error
+		}
+	}
+
 	async getByGroup(
 		groupId: string,
 		halfYear: string,

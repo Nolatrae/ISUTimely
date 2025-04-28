@@ -15,7 +15,7 @@ interface CommonDiscipline {
 	id: string
 	title: string
 	type: 'lecture' | 'practice'
-	groups?: { id: string }[] // если сервер возвращает привязанные группы
+	groups?: { id: string }[]
 }
 
 export function DisciplineGroupAssignment() {

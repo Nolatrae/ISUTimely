@@ -9,6 +9,28 @@ import { extractWeek } from './utils/createSemesterWeeks'
 import { extractDataFromFirstSheet } from './utils/extractDataFromFirstSheet'
 import { extractDisciplines } from './utils/extractDisciplines'
 
+function convertStudyDuration(duration: string): number {
+	const regex = /(\d+)\s*г\.\s*(\d+)\s*м\./
+	const match = duration.match(regex)
+
+	if (match) {
+		// Извлекаем количество лет и месяцев
+		const years = parseInt(match[1], 10)
+		const months = parseInt(match[2], 10)
+		// Возвращаем число в формате лет и месяцев
+		return years + months / 12
+	}
+
+	// Если в строке только годы (например, "4 г.")
+	const yearsOnly = /(\d+)\s*г\./.exec(duration)
+	if (yearsOnly) {
+		return parseInt(yearsOnly[1], 10)
+	}
+
+	// В случае, если строка не совпала с форматом
+	throw new Error('Некорректный формат строки')
+}
+
 @Injectable()
 export class ParserService {
 	constructor(
@@ -19,6 +41,13 @@ export class ParserService {
 	async parseStudyPlan(fileId: string, dto: any) {
 		// 1️⃣ Получаем путь к файлу по `id`
 		const filePath = await this.uploadService.getFilePath(fileId)
+
+		const isFullTime =
+			(
+				await this.prisma.uploadedFiles.findFirst({
+					where: { id: fileId }, // Используйте правильное имя поля для поиска
+				})
+			)?.IsFullTime ?? true
 
 		// 2️⃣ Проверяем, существует ли файл
 		if (!fs.existsSync(filePath)) {
@@ -46,12 +75,11 @@ export class ParserService {
 				this.prisma.group.update({
 					where: { id: groupId },
 					data: {
-						// Обновляем поля группы новыми данными из файла
 						code: data.code,
 						countStudents: '30',
 						direction: data.profile,
 						formEducation: data.formEducation,
-						durationPeriod: 4,
+						durationPeriod: convertStudyDuration(data.duration),
 						yearEnrollment: new Date(data.yearEnrollment),
 					},
 				})
@@ -59,7 +87,7 @@ export class ParserService {
 		)
 
 		// 5️⃣ Запускаем разбор семестров
-		await this.parsingSemesters(filePath, studyPlan.id, dto)
+		await this.parsingSemesters(filePath, studyPlan.id, isFullTime, dto)
 
 		return studyPlan
 	}
@@ -92,6 +120,7 @@ export class ParserService {
 	private async parsingSemesters(
 		filePath: string,
 		studyPlanId: string,
+		isFullTime,
 		dto: any
 	) {
 		const workbook = XLSX.readFile(filePath)

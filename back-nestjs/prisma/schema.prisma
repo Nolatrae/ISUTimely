@@ -129,10 +129,11 @@ model ScheduleWish {
 }
 
 model UploadedFiles {
-  id        String   @id @default(uuid())
-  filename  String
-  path      String
-  createdAt DateTime @default(now())
+  id         String   @id @default(uuid())
+  filename   String
+  path       String
+  IsFullTime Boolean?
+  createdAt  DateTime @default(now())
 }
 
 model StudyPlan {

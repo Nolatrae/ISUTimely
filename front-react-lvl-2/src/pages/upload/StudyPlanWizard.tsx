@@ -32,6 +32,13 @@ const StudyPlanWizard = () => {
 	const [selectedFile, setSelectedFile] = useState<File | null>(null)
 	const [selectedSemester, setSelectedSemester] = useState<number>(1)
 	const [studyPlanId, setStudyPlanId] = useState()
+	const [studyMode, setStudyMode] = useState<'full-time' | 'distance'>(
+		'full-time'
+	)
+	const uploadUrl =
+		studyMode === 'full-time'
+			? 'http://localhost:4200/api/parser/file'
+			: 'http://localhost:4200/api/parser/fileDistance'
 	const fakeFileUrl =
 		'https://www.sample-videos.com/xls/Sample-Spreadsheet-10-rows.xls'
 
@@ -79,13 +86,9 @@ const StudyPlanWizard = () => {
 		formData.append('file', selectedFile)
 
 		try {
-			const response = await axios.post(
-				'http://localhost:4200/api/parser/file',
-				formData,
-				{
-					headers: { 'Content-Type': 'multipart/form-data' },
-				}
-			)
+			const response = await axios.post(uploadUrl, formData, {
+				headers: { 'Content-Type': 'multipart/form-data' },
+			})
 
 			console.log(response.data)
 
@@ -168,7 +171,17 @@ const StudyPlanWizard = () => {
 					<div>
 						{/* 🔹 Шаг 1: Загрузка файла */}
 						{currentStep === 0 && (
-							<div className='mt-20 flex justify-center gap-2'>
+							<div className='mt-20 flex justify-center gap-2 '>
+								<Segmented
+									options={[
+										{ label: 'Очная', value: 'full-time' },
+										{ label: 'Заочная', value: 'distance' },
+									]}
+									value={studyMode}
+									onChange={setStudyMode}
+									className='mb-4 block'
+								/>
+
 								<Upload
 									beforeUpload={beforeUpload}
 									accept='.xlsx,.xls'

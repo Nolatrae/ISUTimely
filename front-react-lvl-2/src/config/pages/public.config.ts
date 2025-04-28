@@ -1,5 +1,4 @@
 class PublicPages {
-	HOME = '/'
 	LOGIN = '/login'
 	REGISTER = '/register'
 	PLANS = '/wishes'
@@ -14,7 +13,8 @@ class PublicPages {
 	AUDIENCETYPES = '/audiencetypes'
 	USERS = '/users'
 	GROUPS = '/groups'
-	PROFILE = '/profile'
+	PROFILE = '/'
+	PROFILE_ADMIN = '/profile'
 	CONSTRUCTOR = '/constructor'
 	SETPAIRSTOTEACHER = '/setpairs'
 	MERGEDISCIPLINES = '/merge-disciplines'

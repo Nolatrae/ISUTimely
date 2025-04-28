@@ -7,20 +7,15 @@ import { AdminPage } from './admin/Admin'
 import { AudienceType } from './AudienceType/AudienceType'
 import { LoginPage } from './auth/login/Login'
 import RegisterPage from './auth/register/Register'
-import { SocialAuthPage } from './auth/social-auth/SocialAuth'
 import { Building } from './building/Building'
 import BusyResourcePage from './BusyResourcePage/BusyResourcePage'
 import { ZaoConstructor } from './Consrtuctor zao/Constructor'
 import { Constructor } from './constructor/Constructor'
 import { CreateEquipment } from './createEquipment/createEquipment'
 import { ManageAudiences } from './createRoom/ManageAudiences'
-import { DashboardPage } from './dashboard/Dashboard'
 import { Department } from './departments/Department'
 import { DisciplineGroupAssignment } from './DisciplineGroupAssignment/DisciplineGroupAssignment'
 import { Group } from './groups/Group'
-import { HomePage } from './home/Home'
-import { ManagerPage } from './manager/Manger'
-import { PlansPage } from './plans/Plans'
 import { Position } from './positions/Position'
 import { UserProfile } from './profile/UserProfile'
 import { ProtectedRoutes } from './ProtectedRoutes'
@@ -31,6 +26,7 @@ import StudyPlanWizard from './upload/StudyPlanWizard'
 import { UserPage } from './user/userPage'
 
 export const router = createBrowserRouter([
+	// Раздел для логина и регистрации
 	{
 		element: <RedirectIfAuth />,
 		children: [
@@ -42,86 +38,55 @@ export const router = createBrowserRouter([
 				path: PUBLIC_PAGES.REGISTER,
 				element: <RegisterPage />,
 			},
-			{
-				path: '/social-auth',
-				element: <SocialAuthPage />,
-			},
 		],
 	},
+	// Раздел для защищённых маршрутов, оборачиваем все страницы в <Layout />
 	{
-		element: <ProtectedRoutes />,
+		element: <ProtectedRoutes roles={[UserRole.TEACHER]} />, // Только для преподавателей
 		children: [
-			{
-				path: '/',
-				element: <HomePage />,
-			},
-
 			{
 				element: <Layout />,
 				children: [
-					{ path: PUBLIC_PAGES.DEPARTMENTS, element: <Department /> },
-					{ path: PUBLIC_PAGES.POSITIONS, element: <Position /> },
-					{ path: PUBLIC_PAGES.BUILDINGS, element: <Building /> },
-					{ path: PUBLIC_PAGES.AUDIENCETYPES, element: <AudienceType /> },
-					{ path: PUBLIC_PAGES.EQUIPMENTCREATE, element: <CreateEquipment /> },
-					{ path: PUBLIC_PAGES.PLANS, element: <TeacherDisciplineWish /> },
-					{ path: PUBLIC_PAGES.ROOMCREATE, element: <ManageAudiences /> },
-					{ path: PUBLIC_PAGES.PARSER, element: <StudyPlanWizard /> },
-					{ path: PUBLIC_PAGES.USERS, element: <UserPage /> },
-					{ path: PUBLIC_PAGES.GROUPS, element: <Group /> },
-					{ path: PUBLIC_PAGES.PROFILE, element: <UserProfile /> },
-					{ path: PUBLIC_PAGES.CONSTRUCTOR, element: <Constructor /> },
-					{
-						path: PUBLIC_PAGES.SETPAIRSTOTEACHER,
-						element: <SetPairsBetweenTeachers />,
-					},
-					{
-						path: PUBLIC_PAGES.MERGEDISCIPLINES,
-						element: <DisciplineGroupAssignment />,
-					},
-					{
-						path: PUBLIC_PAGES.BUSYRESOURCE,
-						element: <BusyResourcePage />,
-					},
-					{
-						path: PUBLIC_PAGES.ZAOCONSTRUCTOR,
-						element: <ZaoConstructor />,
-					},
+					{ path: PUBLIC_PAGES.PROFILE, element: <UserProfile /> }, // Профиль для преподавателя
+					{ path: PUBLIC_PAGES.PLANS, element: <TeacherDisciplineWish /> }, // Страница для преподавателя
 				],
 			},
 		],
 	},
+	// Раздел для защищённых маршрутов для администраторов
 	{
-		element: <ProtectedRoutes roles={UserRole.ADMIN} />,
+		element: <ProtectedRoutes roles={[UserRole.ADMIN]} />, // Только для администраторов
 		children: [
 			{
-				path: ADMIN_PAGES.HOME,
-				element: <AdminPage />,
+				element: <Layout />,
+				children: [
+					{ path: PUBLIC_PAGES.PROFILE_ADMIN, element: <UserProfile /> },
+					{ path: ADMIN_PAGES.HOME, element: <AdminPage /> }, // Для администратора
+					{ path: PUBLIC_PAGES.DEPARTMENTS, element: <Department /> }, // Для администратора
+					{ path: PUBLIC_PAGES.POSITIONS, element: <Position /> }, // Для администратора
+					{ path: PUBLIC_PAGES.BUILDINGS, element: <Building /> }, // Для администратора
+					{ path: PUBLIC_PAGES.AUDIENCETYPES, element: <AudienceType /> }, // Для администратора
+					{ path: PUBLIC_PAGES.EQUIPMENTCREATE, element: <CreateEquipment /> }, // Для администратора
+					{ path: PUBLIC_PAGES.ROOMCREATE, element: <ManageAudiences /> }, // Для администратора
+					{ path: PUBLIC_PAGES.PARSER, element: <StudyPlanWizard /> }, // Для администратора
+					{ path: PUBLIC_PAGES.USERS, element: <UserPage /> }, // Для администратора
+					{ path: PUBLIC_PAGES.GROUPS, element: <Group /> }, // Для администратора
+					{ path: PUBLIC_PAGES.CONSTRUCTOR, element: <Constructor /> }, // Для администратора
+					{
+						path: PUBLIC_PAGES.SETPAIRSTOTEACHER,
+						element: <SetPairsBetweenTeachers />,
+					}, // Для администратора
+					{
+						path: PUBLIC_PAGES.MERGEDISCIPLINES,
+						element: <DisciplineGroupAssignment />,
+					}, // Для администратора
+					{ path: PUBLIC_PAGES.BUSYRESOURCE, element: <BusyResourcePage /> }, // Для администратора
+					{ path: PUBLIC_PAGES.ZAOCONSTRUCTOR, element: <ZaoConstructor /> }, // Для администратора
+				],
 			},
 		],
 	},
-	{
-		element: <ProtectedRoutes roles={UserRole.MANAGER} />,
-		children: [
-			{
-				path: '/manager',
-				element: <ManagerPage />,
-			},
-		],
-	},
-	{
-		element: <ProtectedRoutes roles={UserRole.PREMIUM} />,
-		children: [
-			{
-				path: '/dashboard',
-				element: <DashboardPage />,
-			},
-		],
-	},
-	{
-		path: PUBLIC_PAGES.PLANS,
-		element: <PlansPage />,
-	},
+	// 404 Страница для всех остальных маршрутов
 	{
 		path: '*',
 		element: <div>404 not found!</div>,

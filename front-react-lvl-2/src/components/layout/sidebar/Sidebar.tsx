@@ -7,7 +7,7 @@ import { LogOut } from 'lucide-react'
 import { useTransition } from 'react'
 import { SidebarHeader } from './header/SidebarHeader'
 import { SidebarMenu } from './menus/SidebarMenu'
-import { SIDEBAR_DATA } from './sidebar.data'
+import { SIDEBAR_DATA, SIDEBAR_DATA_TEACHER } from './sidebar.data'
 
 export function Sidebar({
 	toggleSidebar,
@@ -30,12 +30,14 @@ export function Sidebar({
 
 	const isLogoutLoading = isLogoutPending || isPending
 	const { user, isLoading } = useProfile()
+	const sidebarData =
+		user?.rights[0] === 'ADMIN' ? SIDEBAR_DATA : SIDEBAR_DATA_TEACHER
 
 	return (
 		<aside className='p-layout border-r border-border whitespace-nowrap overflow-hidden'>
 			<div>
 				<SidebarHeader toggleSidebar={toggleSidebar} />
-				<SidebarMenu menu={SIDEBAR_DATA} isShowedSidebar={isShowedSidebar} />
+				<SidebarMenu menu={sidebarData} isShowedSidebar={isShowedSidebar} />
 			</div>
 
 			<div className='flex flex-col gap-2'>

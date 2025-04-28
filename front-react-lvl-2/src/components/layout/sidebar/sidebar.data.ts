@@ -21,11 +21,6 @@ import type { ISidebarItem } from './sidebar.types'
 
 export const SIDEBAR_DATA: ISidebarItem[] = [
 	{
-		icon: CakeSlice,
-		label: 'Пожелания',
-		link: PUBLIC_PAGES.PLANS,
-	},
-	{
 		icon: DoorOpen,
 		label: 'Аудитории',
 		link: PUBLIC_PAGES.ROOMCREATE,
@@ -73,7 +68,7 @@ export const SIDEBAR_DATA: ISidebarItem[] = [
 	{
 		icon: User,
 		label: 'Профиль',
-		link: PUBLIC_PAGES.PROFILE,
+		link: PUBLIC_PAGES.PROFILE_ADMIN,
 	},
 	{
 		icon: ToyBrick,
@@ -94,5 +89,18 @@ export const SIDEBAR_DATA: ISidebarItem[] = [
 		icon: CalendarX,
 		label: 'Занятость ресурсов',
 		link: PUBLIC_PAGES.BUSYRESOURCE,
+	},
+]
+
+export const SIDEBAR_DATA_TEACHER: ISidebarItem[] = [
+	{
+		icon: CakeSlice,
+		label: 'Пожелания',
+		link: PUBLIC_PAGES.PLANS,
+	},
+	{
+		icon: User,
+		label: 'Профиль',
+		link: PUBLIC_PAGES.PROFILE,
 	},
 ]

@@ -23,6 +23,8 @@ export function UserProfile() {
 	const { user, isLoading } = useProfile()
 	const queryClient = useQueryClient()
 
+	console.log(user?.rights[0])
+
 	// Запрос на все должности
 	const { data: positionsData, isLoading: isLoadingPositions } = useQuery({
 		queryKey: ['positions'],

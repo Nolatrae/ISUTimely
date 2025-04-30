@@ -56,7 +56,7 @@ export class ParserService {
 
 		// 3️⃣ Читаем Excel-файл
 		const workbook = XLSX.readFile(filePath)
-		const data = extractDataFromFirstSheet(workbook)
+		const data = extractDataFromFirstSheet(workbook, isFullTime)
 
 		// 4️⃣ Создаём учебный план, связывая его с существующими группами,
 		// переданными из клиента в dto.groups
@@ -127,6 +127,7 @@ export class ParserService {
 		// eslint-disable-next-line @typescript-eslint/no-unused-vars
 		const { results, countWeeks } = extractDisciplines(
 			workbook,
+			isFullTime,
 			dto.start_1,
 			dto.end_1,
 			dto.start_2,

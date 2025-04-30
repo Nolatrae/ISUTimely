@@ -4,6 +4,7 @@ import { UploadOutlined } from '@ant-design/icons'
 import { useQuery } from '@tanstack/react-query'
 import {
 	Button,
+	Checkbox,
 	Form,
 	Input,
 	InputNumber,
@@ -32,15 +33,11 @@ const StudyPlanWizard = () => {
 	const [selectedFile, setSelectedFile] = useState<File | null>(null)
 	const [selectedSemester, setSelectedSemester] = useState<number>(1)
 	const [studyPlanId, setStudyPlanId] = useState()
-	const [studyMode, setStudyMode] = useState<'full-time' | 'distance'>(
-		'full-time'
-	)
-	const uploadUrl =
-		studyMode === 'full-time'
-			? 'http://localhost:4200/api/parser/file'
-			: 'http://localhost:4200/api/parser/fileDistance'
-	const fakeFileUrl =
-		'https://www.sample-videos.com/xls/Sample-Spreadsheet-10-rows.xls'
+	const [studyMode, setStudyMode] = useState<boolean>(false)
+
+	const uploadUrl = studyMode
+		? 'http://localhost:4200/api/parser/file'
+		: 'http://localhost:4200/api/parser/fileDistance'
 
 	// ✅ Запрос дисциплин по `studyPlanId`
 	const {
@@ -171,16 +168,13 @@ const StudyPlanWizard = () => {
 					<div>
 						{/* 🔹 Шаг 1: Загрузка файла */}
 						{currentStep === 0 && (
-							<div className='mt-20 flex justify-center gap-2 '>
-								<Segmented
-									options={[
-										{ label: 'Очная', value: 'full-time' },
-										{ label: 'Заочная', value: 'distance' },
-									]}
-									value={studyMode}
-									onChange={setStudyMode}
-									className='mb-4 block'
-								/>
+							<div className='mt-20 flex flex-col justify-center items-center gap-4'>
+								<Checkbox
+									checked={studyMode}
+									onChange={e => setStudyMode(e.target.checked)}
+								>
+									Расширенный
+								</Checkbox>
 
 								<Upload
 									beforeUpload={beforeUpload}

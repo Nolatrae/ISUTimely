@@ -1,11 +1,21 @@
 import { useQuery } from '@tanstack/react-query'
-import { Card, Segmented, Select, Space, Spin, Table } from 'antd'
+import {
+	Button,
+	Popover,
+	Radio,
+	Segmented,
+	Select,
+	Space,
+	Spin,
+	Table,
+} from 'antd'
 import React, { useMemo, useState } from 'react'
 
 import audienceService from '@/services/room/audience.service'
 import type { ScheduledPair } from '@/services/schedule/schedule.service'
 import scheduleService from '@/services/schedule/schedule.service'
 import usersService from '@/services/user/users.service'
+import { EyeOutlined } from '@ant-design/icons'
 import { daysOfWeek, hoursOfDay } from '../constructor/const'
 
 interface BusyResourcePageProps {
@@ -45,6 +55,10 @@ const BusyResourcePage: React.FC<BusyResourcePageProps> = ({
 	const [resourceId, setResourceId] = useState<string | undefined>(undefined)
 	const [halfYearCode, setHalfYearCode] = useState<string>('2021H1')
 	const [isEvenWeek, setIsEvenWeek] = useState<boolean>(true)
+	const [tableVisibility, setTableVisibility] = useState<
+		'one' | 'two' | 'both'
+	>('both')
+	const [numberSelection, setNumberSelection] = useState<number>(1)
 
 	const { data: teachers = [] } = useQuery({
 		queryKey: ['teachers'],
@@ -66,10 +80,16 @@ const BusyResourcePage: React.FC<BusyResourcePageProps> = ({
 		enabled: Boolean(resourceId),
 	})
 
+	const weekTypeNotNull = busySlots.filter(slot => slot.weekType !== null)
+	const weekTypeNull = busySlots.filter(slot => slot.weekType === null)
+
+	console.log(weekTypeNull)
+
 	const slotsMap = useMemo(() => {
 		const m: Record<string, ScheduledPair[]> = {}
 		const filterWeek = isEvenWeek ? 'EVEN' : 'ODD'
-		for (const p of busySlots) {
+
+		for (const p of weekTypeNotNull) {
 			if (p.weekType !== filterWeek) continue
 			const dayLabel = ruDayMap[p.dayOfWeek] || p.dayOfWeek
 			const slotLabel = p.timeSlot.title
@@ -78,7 +98,25 @@ const BusyResourcePage: React.FC<BusyResourcePageProps> = ({
 			m[key].push(p)
 		}
 		return m
-	}, [busySlots, isEvenWeek])
+	}, [weekTypeNotNull, isEvenWeek])
+
+	const slotsMapNullWeek = useMemo(() => {
+		const m: Record<string, ScheduledPair[]> = {}
+		const filterNumberWeek = numberSelection
+
+		for (const p of weekTypeNull) {
+			if (p.numberWeek !== filterNumberWeek) continue
+			const dayLabel = ruDayMap[p.dayOfWeek] || p.dayOfWeek
+			const slotLabel = p.timeSlot.title
+			const key = `${dayLabel}-${slotLabel}`
+			if (!m[key]) m[key] = []
+			m[key].push(p)
+		}
+
+		return m
+	}, [weekTypeNull, numberSelection])
+
+	console.log(slotsMapNullWeek)
 
 	const columns = [
 		{
@@ -86,6 +124,16 @@ const BusyResourcePage: React.FC<BusyResourcePageProps> = ({
 			dataIndex: 'hour',
 			key: 'hour',
 			align: 'center' as const,
+			render: (time: string) => {
+				const [start, end] = time.split(' — ')
+				return (
+					<div style={{ whiteSpace: 'nowrap' }}>
+						<div>{start}</div>
+						<div>{end}</div>
+					</div>
+				)
+			},
+			width: '50px',
 		},
 		...daysOfWeek.map(day => ({
 			title: day,
@@ -99,16 +147,16 @@ const BusyResourcePage: React.FC<BusyResourcePageProps> = ({
 					return <span>Свободно</span>
 				}
 				return (
-					<div className='text-left space-y-2'>
+					<div className='text-left'>
 						{pairs.map(p => (
-							<div key={p.id} className='border rounded p-2'>
+							<div key={p.id} className=''>
 								<div className='font-medium'>
 									{p.assignment.discipline}{' '}
 									<em>({ruTypeMap[p.assignment.type] || p.assignment.type})</em>
 								</div>
 								{p.teachers?.length > 0 && (
 									<div>
-										<span className='font-semibold'>Преподаватель: </span>
+										{/* <span className='font-semibold'>Преподаватель: </span> */}
 										{p.teachers
 											.map(t =>
 												`${t.teacher?.user?.lastName || ''} ${
@@ -132,9 +180,93 @@ const BusyResourcePage: React.FC<BusyResourcePageProps> = ({
 		})),
 	]
 
+	const columnsNullWeek = [
+		{
+			title: 'Время',
+			dataIndex: 'hour',
+			key: 'hour',
+			align: 'center' as const,
+			render: (time: string) => {
+				const [start, end] = time.split(' — ')
+				return (
+					<div style={{ whiteSpace: 'nowrap' }}>
+						<div>{start}</div>
+						<div>{end}</div>
+					</div>
+				)
+			},
+			width: '50px',
+		},
+		...daysOfWeek.map(day => ({
+			title: day,
+			dataIndex: day,
+			key: day,
+			align: 'center' as const,
+			render: (_: any, rec: { hour: string }) => {
+				const key = `${day}-${rec.hour}`
+				const pairs = slotsMapNullWeek[key] // Используем slotsMapNullWeek для второго расписания
+				if (!pairs || !pairs.length) {
+					return <span>Свободно</span>
+				}
+				return (
+					<div className='text-left'>
+						{pairs.map(p => (
+							<div key={p.id} className=''>
+								<div className='font-medium'>
+									{p.assignment.discipline}{' '}
+									<em>({ruTypeMap[p.assignment.type] || p.assignment.type})</em>
+								</div>
+								{p.teachers?.length > 0 && (
+									<div>
+										{p.teachers
+											.map(t =>
+												`${t.teacher?.user?.lastName || ''} ${
+													t.teacher?.user?.firstName || ''
+												}
+												${t.teacher?.user?.middleName || ''}`.trim()
+											)
+											.join(', ')}
+									</div>
+								)}
+								<div>
+									<span className='font-semibold'>Группы: </span>
+									{p.groups.map(g => g.group.title).join(', ')}
+								</div>
+							</div>
+						))}
+					</div>
+				)
+			},
+		})),
+	]
+
+	const handleTableVisibilityChange = (e: any) => {
+		setTableVisibility(e.target.value)
+	}
+
+	const popoverContent = (
+		<Radio.Group
+			value={tableVisibility}
+			onChange={handleTableVisibilityChange}
+			className='flex flex-col'
+		>
+			<Radio value='one'>Отображать только очное</Radio>
+			<Radio value='two'>Отображать только заочное</Radio>
+			<Radio value='both'>Отображать 2 одновременно</Radio>
+		</Radio.Group>
+	)
+
+	console.log(tableVisibility)
 	return (
-		<Card title='Занятость ресурса' style={{ margin: 16 }}>
+		<>
 			<Space wrap size='large' className='mb-4'>
+				<Popover
+					content={popoverContent}
+					title='Выбор расписания'
+					trigger='click'
+				>
+					<Button icon={<EyeOutlined />} shape='default' size='middle' />
+				</Popover>
 				<Segmented
 					options={[
 						{ label: 'Преподаватель', value: 'teacher' },
@@ -176,7 +308,6 @@ const BusyResourcePage: React.FC<BusyResourcePageProps> = ({
 					value={halfYearCode}
 					onChange={val => setHalfYearCode(val)}
 				/>
-
 				<Segmented
 					options={[
 						{ label: 'Чётная неделя', value: 'even' },
@@ -184,20 +315,60 @@ const BusyResourcePage: React.FC<BusyResourcePageProps> = ({
 					]}
 					value={isEvenWeek ? 'even' : 'odd'}
 					onChange={val => setIsEvenWeek(val === 'even')}
+					style={{
+						display:
+							tableVisibility === 'one' || tableVisibility === 'both'
+								? 'inline-block'
+								: 'none',
+					}} // Скрываем, если tableVisibility не one или both
+				/>
+
+				<Segmented
+					options={[1, 2, 3, 4, 5].map(val => ({
+						label: String(val),
+						value: val,
+					}))}
+					value={numberSelection}
+					onChange={setNumberSelection}
+					style={{
+						display:
+							tableVisibility === 'two' || tableVisibility === 'both'
+								? 'inline-block'
+								: 'none',
+					}} // Скрываем, если tableVisibility не two или both
 				/>
 			</Space>
 
 			{isFetching ? (
 				<Spin />
 			) : (
-				<Table
-					columns={columns}
-					dataSource={hoursOfDay.map(h => ({ key: h, hour: h }))}
-					pagination={false}
-					size='middle'
-				/>
+				<div className='flex gap-1 busy-table'>
+					{tableVisibility === 'one' || tableVisibility === 'both' ? (
+						<div style={{ flex: 1 }}>
+							<Table
+								columns={columns}
+								dataSource={hoursOfDay.map(h => ({ key: h, hour: h }))}
+								pagination={false}
+								bordered
+								style={{ fontSize: '8px' }}
+							/>
+						</div>
+					) : null}
+
+					{tableVisibility === 'two' || tableVisibility === 'both' ? (
+						<div style={{ flex: 1 }}>
+							<Table
+								columns={columnsNullWeek}
+								dataSource={hoursOfDay.map(h => ({ key: h, hour: h }))}
+								pagination={false}
+								bordered
+								style={{ fontSize: '8px' }}
+							/>
+						</div>
+					) : null}
+				</div>
 			)}
-		</Card>
+		</>
 	)
 }
 

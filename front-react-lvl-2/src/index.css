@@ -30,3 +30,16 @@ h2 {
 h2 {
 	color: black;
 }
+
+.ant-table {
+	font-size: 12px;
+}
+
+.ant-table th,
+.ant-table td {
+	font-size: 12px;
+}
+
+.busy-table .ant-table-cell {
+	padding: 10px !important;
+}

@@ -198,9 +198,18 @@ export function Group() {
 				return (
 					<>
 						{year && studyPlanId && (
-							<Tooltip title='Просмотреть в конструкторе'>
+							<Tooltip title='Просмотреть в  заочном конструкторе'>
 								<Link
 									to={`/zao-constructor?groupId=${groupId}&studyPlanId=${studyPlanId}&yearOfAdmission=${year}`}
+								>
+									<Button type='link' icon={<EyeOutlined />} />
+								</Link>
+							</Tooltip>
+						)}
+						{year && studyPlanId && (
+							<Tooltip title='Просмотреть в очном конструкторе'>
+								<Link
+									to={`/constructor?groupId=${groupId}&studyPlanId=${studyPlanId}&yearOfAdmission=${year}`}
 								>
 									<Button type='link' icon={<EyeOutlined />} />
 								</Link>

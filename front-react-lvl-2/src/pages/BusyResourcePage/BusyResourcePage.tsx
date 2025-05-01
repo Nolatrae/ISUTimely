@@ -83,8 +83,6 @@ const BusyResourcePage: React.FC<BusyResourcePageProps> = ({
 	const weekTypeNotNull = busySlots.filter(slot => slot.weekType !== null)
 	const weekTypeNull = busySlots.filter(slot => slot.weekType === null)
 
-	console.log(weekTypeNull)
-
 	const slotsMap = useMemo(() => {
 		const m: Record<string, ScheduledPair[]> = {}
 		const filterWeek = isEvenWeek ? 'EVEN' : 'ODD'
@@ -115,8 +113,6 @@ const BusyResourcePage: React.FC<BusyResourcePageProps> = ({
 
 		return m
 	}, [weekTypeNull, numberSelection])
-
-	console.log(slotsMapNullWeek)
 
 	const columns = [
 		{
@@ -256,7 +252,6 @@ const BusyResourcePage: React.FC<BusyResourcePageProps> = ({
 		</Radio.Group>
 	)
 
-	console.log(tableVisibility)
 	return (
 		<>
 			<Space wrap size='large' className='mb-4'>

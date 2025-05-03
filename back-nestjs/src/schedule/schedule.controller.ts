@@ -66,11 +66,12 @@ export class ScheduleController {
 		return result
 	}
 
-	@Get('teacher/:teacherId/busy')
+	@Get('group/:groupId/busy')
 	async getBusyGroup(
 		@Param('groupId') groupId: string,
 		@Query('halfYear') halfYear: string
 	) {
+		console.log(groupId, halfYear)
 		const result = await this.service.findBusySelectedGroup(groupId, halfYear)
 		return result
 	}

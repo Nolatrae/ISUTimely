@@ -11,6 +11,7 @@ import {
 } from 'antd'
 import React, { useMemo, useState } from 'react'
 
+import groupService from '@/services/group/group.service' // Добавляем импорт для работы с группами
 import audienceService from '@/services/room/audience.service'
 import type { ScheduledPair } from '@/services/schedule/schedule.service'
 import scheduleService from '@/services/schedule/schedule.service'
@@ -49,9 +50,9 @@ const halfYearOptions = Array.from({ length: 10 }, (_, i) => {
 const BusyResourcePage: React.FC<BusyResourcePageProps> = ({
 	yearOfAdmission = 2021,
 }) => {
-	const [resourceType, setResourceType] = useState<'teacher' | 'room'>(
-		'teacher'
-	)
+	const [resourceType, setResourceType] = useState<
+		'teacher' | 'room' | 'group'
+	>('teacher') // Добавляем 'group' для выбора группы
 	const [resourceId, setResourceId] = useState<string | undefined>(undefined)
 	const [halfYearCode, setHalfYearCode] = useState<string>('2021H1')
 	const [isEvenWeek, setIsEvenWeek] = useState<boolean>(true)
@@ -60,6 +61,7 @@ const BusyResourcePage: React.FC<BusyResourcePageProps> = ({
 	>('both')
 	const [numberSelection, setNumberSelection] = useState<number>(1)
 
+	// Получаем данные для преподавателей, кабинетов и групп
 	const { data: teachers = [] } = useQuery({
 		queryKey: ['teachers'],
 		queryFn: () => usersService.getAll(),
@@ -68,6 +70,12 @@ const BusyResourcePage: React.FC<BusyResourcePageProps> = ({
 		queryKey: ['rooms'],
 		queryFn: () => audienceService.getAll(),
 	})
+	const { data: groupsData = [], isLoading: isGroupLoading } = useQuery<
+		Group[]
+	>({
+		queryKey: ['groups'],
+		queryFn: () => groupService.getAll(),
+	})
 
 	const { data: busySlots = [], isFetching } = useQuery<ScheduledPair[]>({
 		queryKey: ['busySlots', resourceType, resourceId, halfYearCode],
@@ -75,7 +83,9 @@ const BusyResourcePage: React.FC<BusyResourcePageProps> = ({
 			resourceId
 				? resourceType === 'teacher'
 					? scheduleService.getBusyTeacherRecords(resourceId, halfYearCode)
-					: scheduleService.getBusyRoomRecords(resourceId, halfYearCode)
+					: resourceType === 'room'
+					? scheduleService.getBusyRoomRecords(resourceId, halfYearCode)
+					: scheduleService.getBusyGroupRecords(resourceId, halfYearCode) // Запрос для группы
 				: Promise.resolve([]),
 		enabled: Boolean(resourceId),
 	})
@@ -152,14 +162,12 @@ const BusyResourcePage: React.FC<BusyResourcePageProps> = ({
 								</div>
 								{p.teachers?.length > 0 && (
 									<div>
-										{/* <span className='font-semibold'>Преподаватель: </span> */}
 										{p.teachers
 											.map(t =>
 												`${t.teacher?.user?.lastName || ''} ${
 													t.teacher?.user?.firstName || ''
 												}
-												${t.teacher?.user?.middleName || ''}
-												`.trim()
+												${t.teacher?.user?.middleName || ''}`.trim()
 											)
 											.join(', ')}
 									</div>
@@ -200,7 +208,7 @@ const BusyResourcePage: React.FC<BusyResourcePageProps> = ({
 			align: 'center' as const,
 			render: (_: any, rec: { hour: string }) => {
 				const key = `${day}-${rec.hour}`
-				const pairs = slotsMapNullWeek[key] // Используем slotsMapNullWeek для второго расписания
+				const pairs = slotsMapNullWeek[key]
 				if (!pairs || !pairs.length) {
 					return <span>Свободно</span>
 				}
@@ -266,10 +274,11 @@ const BusyResourcePage: React.FC<BusyResourcePageProps> = ({
 					options={[
 						{ label: 'Преподаватель', value: 'teacher' },
 						{ label: 'Кабинет', value: 'room' },
+						{ label: 'Группа', value: 'group' }, // Добавляем группу в segmented
 					]}
 					value={resourceType}
 					onChange={val => {
-						setResourceType(val as 'teacher' | 'room')
+						setResourceType(val as 'teacher' | 'room' | 'group') // Обновляем state
 						setResourceId(undefined)
 					}}
 				/>
@@ -279,7 +288,9 @@ const BusyResourcePage: React.FC<BusyResourcePageProps> = ({
 					placeholder={
 						resourceType === 'teacher'
 							? 'Выберите преподавателя'
-							: 'Выберите кабинет'
+							: resourceType === 'room'
+							? 'Выберите кабинет'
+							: 'Выберите группу' // Плейсхолдер для группы
 					}
 					options={
 						resourceType === 'teacher'
@@ -289,7 +300,9 @@ const BusyResourcePage: React.FC<BusyResourcePageProps> = ({
 										value: String(u.Teacher!.id),
 										label: `${u.lastName} ${u.firstName} ${u?.middleName}`,
 									}))
-							: rooms.map(r => ({ value: r.id, label: r.title }))
+							: resourceType === 'room'
+							? rooms.map(r => ({ value: r.id, label: r.title }))
+							: groupsData.map(g => ({ value: g.id, label: g.title })) // Опции для групп
 					}
 					value={resourceId}
 					onChange={setResourceId}
@@ -317,7 +330,6 @@ const BusyResourcePage: React.FC<BusyResourcePageProps> = ({
 								: 'none',
 					}} // Скрываем, если tableVisibility не one или both
 				/>
-
 				<Segmented
 					options={[1, 2, 3, 4, 5].map(val => ({
 						label: String(val),

@@ -152,6 +152,17 @@ class ScheduleService {
 		)
 		return resp.data
 	}
+
+	async getBusyGroupRecords(
+		groupId: string,
+		halfYear: string
+	): Promise<ScheduledPair[]> {
+		const resp = await instance.get<ScheduledPair[]>(
+			`schedule/group/${groupId}/busy`,
+			{ params: { halfYear } }
+		)
+		return resp.data
+	}
 }
 
 export default new ScheduleService()

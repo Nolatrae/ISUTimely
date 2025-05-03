@@ -2,7 +2,7 @@ import { useProfile } from '@/hooks/useProfile'
 import AudienceTypeService from '@/services/audienceType/AudienceTypeService'
 import { disciplineService } from '@/services/disciplines/discipline.service'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { Button, Input, message, notification, Select, Table } from 'antd'
+import { Button, Input, notification, Select, Table } from 'antd'
 import { useEffect, useState } from 'react'
 
 const { Option } = Select
@@ -20,6 +20,8 @@ const TeacherDisciplineWish = () => {
 
 	const { user } = useProfile()
 	const queryClient = useQueryClient()
+	const teacherId = user?.Teacher.id
+	console.log(teacherId)
 
 	// Запрос на получение дисциплин
 	const {
@@ -28,8 +30,7 @@ const TeacherDisciplineWish = () => {
 		error: disciplineError,
 	} = useQuery({
 		queryKey: ['disciplines'],
-		queryFn: () =>
-			disciplineService.getTeacherPairs('f59fa491-baa0-4af8-8588-4b213ffafc05'),
+		queryFn: () => disciplineService.getTeacherPairs(teacherId),
 	})
 
 	const {
@@ -38,8 +39,7 @@ const TeacherDisciplineWish = () => {
 		error: textError,
 	} = useQuery({
 		queryKey: ['text'],
-		queryFn: () =>
-			disciplineService.getTeacherText('f59fa491-baa0-4af8-8588-4b213ffafc05'),
+		queryFn: () => disciplineService.getTeacherText(teacherId),
 	})
 
 	// Мутация для сохранения пожеланий преподавателя
@@ -111,18 +111,15 @@ const TeacherDisciplineWish = () => {
 			)
 
 			const preferences = {
-				teacherId: 'f59fa491-baa0-4af8-8588-4b213ffafc05', // ID преподавателя
+				teacherId: teacherId, // ID преподавателя
 				audienceTypes: updatedAssignments, // Преобразованные предпочтения
 				wishText,
 			}
 
 			// Вызываем мутацию и передаем объект с данными
 			savePrefer(preferences)
-
-			console.log(preferences)
-			message.success('Пожелания сохранены!')
 		} catch (error) {
-			message.error('Ошибка при сохранении пожеланий.')
+			console.log(error)
 		}
 	}
 
@@ -173,26 +170,29 @@ const TeacherDisciplineWish = () => {
 	}))
 
 	return (
-		<div>
-			<Table
-				rowKey='key'
-				columns={columns}
-				dataSource={dataSource}
-				pagination={false}
-				loading={isDisciplineLoading}
-			/>
-			<Input.TextArea
-				rows={4}
-				value={wishText}
-				onChange={handleWishTextChange}
-				placeholder='Введите ваши пожелания...'
-				style={{ marginTop: '20px', marginBottom: '20px' }}
-			/>
-			{/* Кнопка для сохранения пожеланий */}
-			<Button type='primary' onClick={savePreferences}>
-				Сохранить пожелания
-			</Button>
-		</div>
+		<>
+			<h2>Пожелания преподавателя</h2>
+			<div className='mt-4'>
+				<Table
+					rowKey='key'
+					columns={columns}
+					dataSource={dataSource}
+					pagination={false}
+					loading={isDisciplineLoading}
+				/>
+				<Input.TextArea
+					rows={4}
+					value={wishText}
+					onChange={handleWishTextChange}
+					placeholder='Введите ваши пожелания...'
+					style={{ marginTop: '20px', marginBottom: '20px' }}
+				/>
+				{/* Кнопка для сохранения пожеланий */}
+				<Button type='primary' onClick={savePreferences}>
+					Сохранить пожелания
+				</Button>
+			</div>
+		</>
 	)
 }
 

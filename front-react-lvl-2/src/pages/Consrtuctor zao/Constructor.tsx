@@ -178,6 +178,7 @@ export function ZaoConstructor() {
 					el_lecture_hours,
 					el_practice_hours,
 					el_laboratory_hours,
+					control,
 				} = d
 
 				const items = []
@@ -221,6 +222,16 @@ export function ZaoConstructor() {
 						type: 'Лабораторная',
 						totalPairs: totalLabs,
 						onlinePossible: roundPairs(el_laboratory_hours ?? 0),
+					})
+				}
+
+				if (control === 'Эк') {
+					items.push({
+						id: uuidv4(),
+						disciplineName: name,
+						type: 'Консультация', // Указываем тип "Консультация"
+						totalPairs: 1, // Можно задать какое-то фиксированное количество пар для консультации
+						onlinePossible: 1, // Также можно настроить для консультации
 					})
 				}
 

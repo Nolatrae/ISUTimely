@@ -7,6 +7,7 @@ import {
 	Input,
 	Modal,
 	notification,
+	Select,
 	Table,
 	Tooltip,
 	Typography,
@@ -20,6 +21,7 @@ export interface Group {
 	countStudents: string
 	code: string | null
 	direction: string | null
+	profile: string | null
 	formEducation: string | null
 	durationPeriod: string | null
 	yearEnrollment: string | null
@@ -30,6 +32,11 @@ export function Group() {
 	const queryClient = useQueryClient()
 	const [currentGroup, setCurrentGroup] = useState<Group | null>(null)
 	const [form] = Form.useForm()
+	const [selectedGroups, setSelectedGroups] = useState<string[]>([])
+	const [selectMode, setSelectMode] = useState(false)
+	const [semester, setSemester] = useState<string | null>(null)
+	const [educationForm, setEducationForm] = useState<string | null>(null)
+	const [reportSelected, setReportSelected] = useState(false)
 
 	// Объединённое состояние модальных окон
 	const [modalState, setModalState] = useState<
@@ -143,6 +150,10 @@ export function Group() {
 		}
 	}
 
+	const handleSelectChange = (selectedRowKeys: string[]) => {
+		setSelectedGroups(selectedRowKeys)
+	}
+
 	// Столбцы таблицы
 	const columns = [
 		{
@@ -168,6 +179,12 @@ export function Group() {
 			render: (text: string) => text || '',
 		},
 		{
+			title: 'Профиль',
+			dataIndex: 'profile',
+			key: 'profile',
+			render: (text: string) => text || '',
+		},
+		{
 			title: 'Форма обучения',
 			dataIndex: 'formEducation',
 			key: 'formEducation',
@@ -183,7 +200,13 @@ export function Group() {
 			title: 'Год поступления',
 			dataIndex: 'yearEnrollment',
 			key: 'yearEnrollment',
-			render: (text: string) => text || '',
+			render: (text: string) => {
+				if (text) {
+					const date = new Date(text)
+					return date.getFullYear()
+				}
+				return ''
+			},
 		},
 		{
 			title: 'Действия',
@@ -251,27 +274,128 @@ export function Group() {
 		countStudents: group.countStudents,
 		code: group.code,
 		direction: group.direction,
+		profile: group.profile,
 		durationPeriod: group.durationPeriod,
 		formEducation: group.formEducation,
 		yearEnrollment: group.yearEnrollment,
 		studyPlanId: group.studyPlanId,
 	}))
 
+	const createReport = async (
+		selectedGroupIds: string[],
+		semester: string | null,
+		educationForm: string | null
+	) => {
+		if (!semester) {
+			notification.error({ message: 'Пожалуйста, выберите полугодие' })
+			return
+		}
+
+		try {
+			await groupService.createReport(selectedGroupIds, semester, educationForm) // Используйте соответствующий метод для запроса отчёта
+
+			console.log(selectedGroupIds, educationForm, semester)
+			notification.success({ message: 'Отчёт успешно создан' })
+		} catch (error) {
+			notification.error({ message: 'Ошибка при создании отчёта' })
+		}
+	}
+
+	const rowSelection = selectMode
+		? {
+				selectedRowKeys: selectedGroups,
+				onChange: handleSelectChange,
+		  }
+		: null
+
+	const halfYearOptions = Array.from({ length: 10 }, (_, i) => {
+		const year = 2021 + Math.floor(i / 2) // Год будет увеличиваться каждые два элемента
+		const half = i % 2 === 0 ? 1 : 2 // 1 или 2 полугодие в зависимости от индекса
+		return {
+			value: `${year}H${half}`, // Пример: 2021H1 или 2021H2
+			label: `${year} год — ${half} полугодие`, // Пример: 2021 год — 1 полугодие
+		}
+	})
+
 	return (
 		<>
-			<h2>Группы</h2>
-			<Button
-				type='primary'
-				onClick={() => openModal('create')}
-				style={{ marginBottom: 16, marginTop: 16 }}
-			>
-				Добавить группу
-			</Button>
+			<h2 className='text-black'>Группы</h2>
+			<div className='flex'>
+				<Button
+					type='primary'
+					onClick={() => setSelectMode(!selectMode)}
+					style={{ marginBottom: 16, marginTop: 16 }}
+				>
+					{selectMode ? 'Отменить выбор' : 'Выбрать'}
+				</Button>
+
+				{selectMode && (
+					<>
+						<Select
+							value={semester}
+							onChange={setSemester}
+							placeholder='Выберите полугодие'
+							style={{
+								width: 200,
+								marginBottom: 16,
+								marginTop: 16,
+								marginLeft: 8,
+							}}
+						>
+							{halfYearOptions.map(option => (
+								<Select.Option key={option.value} value={option.value}>
+									{option.label}
+								</Select.Option>
+							))}
+						</Select>
+
+						<Select
+							value={educationForm}
+							onChange={setEducationForm}
+							placeholder='Выберите форму обучения'
+							style={{
+								width: 200,
+								marginLeft: 8,
+								marginBottom: 16,
+								marginTop: 16,
+							}}
+						>
+							<Select.Option value='full-time'>Очный</Select.Option>
+							<Select.Option value='part-time'>Заочный</Select.Option>
+							<Select.Option value='forlabs'>Импорт в форлабс</Select.Option>
+						</Select>
+
+						<Button
+							type='primary'
+							onClick={() =>
+								createReport(selectedGroups, semester, educationForm)
+							}
+							disabled={
+								selectedGroups.length === 0 || !semester || !educationForm
+							}
+							style={{ marginBottom: 16, marginTop: 16, marginLeft: 8 }}
+						>
+							Создать отчёт
+						</Button>
+					</>
+				)}
+
+				<Button
+					type='primary'
+					onClick={() => openModal('create')}
+					style={{ marginBottom: 16, marginTop: 16 }}
+					className='ml-auto'
+				>
+					Добавить группу
+				</Button>
+			</div>
+
 			<Table
 				dataSource={dataSource}
 				columns={columns}
 				pagination={false}
 				rowKey='id'
+				rowSelection={rowSelection}
 			/>
 
 			{/* Модальное окно для создания/редактирования */}

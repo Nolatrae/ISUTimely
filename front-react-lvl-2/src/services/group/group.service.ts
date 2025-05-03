@@ -73,6 +73,45 @@ class GroupService {
 			throw error
 		}
 	}
+
+	async createReport(
+		selectedGroupIds: string[],
+		semester: string | null,
+		educationForm: string | null
+	) {
+		if (!semester || !educationForm) {
+			throw new Error('Полугодие или форма обучения не выбраны')
+		}
+
+		try {
+			// Формируем данные для запроса
+			const reportData = {
+				groupIds: selectedGroupIds,
+				semester: semester,
+				educationForm: educationForm,
+			}
+
+			// Отправляем POST-запрос для создания отчёта
+			const response = await instance.post(`report/generate`, reportData, {
+				responseType: 'blob',
+			})
+
+			// Здесь получаем файл (например, PDF или Excel)
+			const file = response.data
+			const url = window.URL.createObjectURL(new Blob([file]))
+			const link = document.createElement('a')
+			link.href = url
+			link.setAttribute('download', 'report.pdf') // Указываем имя файла
+			document.body.appendChild(link)
+			link.click() // Имитация клика для начала скачивания
+			document.body.removeChild(link)
+
+			return file
+		} catch (error) {
+			console.error('Ошибка при создании отчёта:', error)
+			throw error
+		}
+	}
 }
 
 export default new GroupService()

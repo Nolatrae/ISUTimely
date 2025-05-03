@@ -261,13 +261,12 @@ export function ZaoConstructor() {
 	})
 
 	const {
-		data: disciplinesText,
-		isLoading: isTextLoading,
-		error: textError,
+		data: allTeacherTextWishes,
+		isLoading: isTextWishesLoading,
+		error: textWishesError,
 	} = useQuery({
-		queryKey: ['text'],
-		queryFn: () =>
-			disciplineService.getTeacherText('f59fa491-baa0-4af8-8588-4b213ffafc05'),
+		queryKey: ['allTeacherTextWishes'],
+		queryFn: () => disciplineService.getAllTeacherTextWishes(),
 	})
 
 	return (
@@ -349,28 +348,42 @@ export function ZaoConstructor() {
 					<div className='h-full overflow-auto p-4'>
 						{selectedDiscipline ? (
 							(() => {
-								const matchingWish = disciplinesWishes?.find(
-									wish => wish.discipline === selectedDiscipline.disciplineName
+								// Получаем всех преподавателей для выбранной дисциплины
+								const teachersForDiscipline = selectedDiscipline.teacherIds
+
+								const matchingWishes = allTeacherTextWishes?.filter(wish =>
+									teachersForDiscipline.includes(wish.teacherId)
 								)
-								// Если disciplinesText не является массивом, возвращаем null
-								const matchingText =
-									Array.isArray(disciplinesText) &&
-									disciplinesText.find(
-										text =>
-											text.discipline === selectedDiscipline.disciplineName
-									)
+
+								const matchingWish = disciplinesWishes?.find(
+									wish =>
+										wish.discipline === selectedDiscipline.disciplineName &&
+										wish.type.toLowerCase() === typeMap[selectedDiscipline.type]
+								)
 
 								return (
 									<div>
 										{matchingWish ? (
 											<div>
+												{/* Тип аудитории */}
 												<p>
 													<strong>Тип аудитории:</strong>{' '}
 													{matchingWish.audienceType?.title}
 												</p>
-												<p>
-													<strong>Пожелание:</strong> {disciplinesText}
-												</p>
+
+												{/* Пожелания для каждого преподавателя */}
+												{matchingWishes?.length > 0 ? (
+													matchingWishes.map((wish, index) => (
+														<div key={index}>
+															<p>
+																<strong>Пожелание преподавателя:</strong>{' '}
+																{wish.wishText}
+															</p>
+														</div>
+													))
+												) : (
+													<p>Пожелания для выбранной дисциплины не найдены.</p>
+												)}
 											</div>
 										) : (
 											<p>Пожелания для выбранной дисциплины не найдены.</p>

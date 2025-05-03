@@ -85,7 +85,7 @@ export class DisciplineController {
 	}
 
 	// Новый метод для получения пар преподавателя по его ID
-	@Post('teacher/:teacherId/pair')
+	@Post('teacher/:teacherId/pairs')
 	async getTeacherPairs(@Param('teacherId') teacherId: string) {
 		try {
 			const pairs = await this.disciplineService.getTeacherPairs(teacherId)

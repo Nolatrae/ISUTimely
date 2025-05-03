@@ -43,3 +43,7 @@ h2 {
 .busy-table .ant-table-cell {
 	padding: 10px !important;
 }
+
+.ant-card .ant-card-head-title {
+	white-space: normal !important;
+}

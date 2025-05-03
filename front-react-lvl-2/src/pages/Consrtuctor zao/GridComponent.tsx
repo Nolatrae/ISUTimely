@@ -7,7 +7,7 @@ import usersService from '@/services/user/users.service'
 import { useSelectedPairStore } from '@/store/selectedPairStore'
 import { useQuery } from '@tanstack/react-query'
 import { Button, message, Segmented, Table } from 'antd'
-import React, { useCallback, useEffect, useState } from 'react'
+import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import GridCell from './GridCell'
 import { daysOfWeek, hoursOfDay } from './const'
 
@@ -41,6 +41,9 @@ const GridComponent: React.FC<GridComponentProps> = ({
 	const [busyPairsByRoom, setBusyPairsByRoom] = useState<
 		Record<string /*roomId*/, ScheduledPair[]>
 	>({})
+	const [busyPairsByTeacher, setBusyPairsByTeacher] = useState<
+		Record<string /*teacherId*/, ScheduledPair[]>
+	>({})
 
 	const {
 		data: usersData,
@@ -57,6 +60,19 @@ const GridComponent: React.FC<GridComponentProps> = ({
 			}))
 		},
 	})
+
+	const teachers = useMemo(() => {
+		return (
+			usersData
+				?.filter(user => user.role.includes('TEACHER'))
+				.map(user => ({
+					id: user.teacher?.id,
+					fullName: `${user.firstName} ${user.middleName || ''} ${
+						user.lastName
+					}`,
+				})) ?? []
+		)
+	}, [usersData])
 
 	// Подтягиваем список аудиторий (для назначения кабинета)
 	const {
@@ -244,6 +260,7 @@ const GridComponent: React.FC<GridComponentProps> = ({
 						}
 						rooms={rooms}
 						getBusyPairs={getBusyPairs}
+						getBusyPairsTeachers={getBusyPairsTeachers}
 						placePair={placePair}
 						removePair={removePair}
 						setRoom={setRoom}
@@ -344,6 +361,34 @@ const GridComponent: React.FC<GridComponentProps> = ({
 		}
 	}, [rooms, halfYearCode])
 
+	useEffect(() => {
+		if (!teachers?.length) return
+
+		let cancelled = false
+		;(async () => {
+			const entries = await Promise.all(
+				teachers.map(async user => {
+					const pairs = await scheduleService.getBusyTeacherRecords(
+						user.id,
+						halfYearCode
+					)
+					return [user.id, pairs] as const
+				})
+			)
+
+			if (!cancelled) {
+				const filteredEntries = entries.filter(entry => entry !== null)
+				setBusyPairsByTeacher(
+					Object.fromEntries(filteredEntries as [string, ScheduledPair[]][])
+				)
+			}
+		})()
+
+		return () => {
+			cancelled = true
+		}
+	}, [teachers, halfYearCode])
+
 	const getBusyPairs = useCallback(
 		(roomId: string, day: string, hour: string): ScheduledPair[] => {
 			const all = busyPairsByRoom[roomId] ?? []
@@ -365,6 +410,28 @@ const GridComponent: React.FC<GridComponentProps> = ({
 			)
 		},
 		[busyPairsByRoom, week, startWithOddWeek]
+	)
+
+	const getBusyPairsTeachers = useCallback(
+		(teacherId: string, day: string, hour: string): ScheduledPair[] => {
+			const all = busyPairsByTeacher[teacherId] ?? []
+
+			const weekType = startWithOddWeek
+				? week % 2 === 0
+					? 'EVEN'
+					: 'ODD'
+				: week % 2 === 0
+				? 'ODD'
+				: 'EVEN'
+
+			return all.filter(
+				p =>
+					p.weekType === weekType &&
+					p.dayOfWeek === day &&
+					p.timeSlotId === hour
+			)
+		},
+		[busyPairsByTeacher, week, startWithOddWeek]
 	)
 
 	return (

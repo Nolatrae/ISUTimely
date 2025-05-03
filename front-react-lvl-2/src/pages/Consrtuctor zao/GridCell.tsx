@@ -25,6 +25,11 @@ interface GridCellProps {
 	rooms: RoomInfo[]
 	teachers: { id: string; fullName: string }[]
 	getBusyPairs: (roomId: string, day: string, hour: string) => ScheduledPair[]
+	getBusyPairsTeachers: (
+		teacherId: string,
+		day: string,
+		hour: string
+	) => ScheduledPair[]
 	placePair: (day: string, hour: string, isOnline: boolean) => void
 
 	removePair: (day: string, hour: string) => void
@@ -61,6 +66,7 @@ const GridCell: React.FC<GridCellProps> = memo(props => {
 		rooms,
 		teachers,
 		getBusyPairs,
+		getBusyPairsTeachers,
 		placePair,
 		removePair,
 		setRoom,
@@ -111,6 +117,10 @@ const GridCell: React.FC<GridCellProps> = memo(props => {
 							<span className='font-semibold'>Тип:</span>
 							<span>
 								{ruTypeMap[p.assignment?.type ?? ''] ?? p.assignment?.type}
+							</span>
+							<span className='font-semibold'>Кабинет:</span>
+							<span>
+								{p.rooms?.length ? p.rooms[0].audience?.title ?? '—' : '—'}
 							</span>
 
 							<span className='font-semibold'>Группа:</span>
@@ -203,11 +213,35 @@ const GridCell: React.FC<GridCellProps> = memo(props => {
 						onMouseDown={e => e.stopPropagation()}
 					/>
 				</Menu.Item>
-				{filteredTeachers.map(t => (
-					<Menu.Item key={t.id} onClick={() => setTeacher(day, hour, t.id)}>
-						{t.fullName}
-					</Menu.Item>
-				))}
+				{filteredTeachers.map(t => {
+					const apiDay = dayCodeMap[day] || day
+					const apiHour = normalizeTimeSlotId(hour)
+					// console.log(t.id, apiDay, apiHour)
+					const busyPairs = getBusyPairsTeachers(t.id, apiDay, apiHour)
+					// console.log(busyPairs)
+					const busy = busyPairs.length > 0
+
+					return (
+						<Menu.Item
+							key={t.id}
+							onClick={() => setTeacher(day, hour, t.id)}
+							danger={busy}
+						>
+							<div className='flex justify-between items-center w-full'>
+								{t.fullName}
+								{busy && (
+									<Popover
+										content={makePopoverContent(busyPairs)}
+										placement='right'
+										trigger='hover'
+									>
+										<ExclamationCircleOutlined style={{ marginLeft: 6 }} />
+									</Popover>
+								)}
+							</div>
+						</Menu.Item>
+					)
+				})}
 			</Menu.SubMenu>
 
 			<Menu.Divider />

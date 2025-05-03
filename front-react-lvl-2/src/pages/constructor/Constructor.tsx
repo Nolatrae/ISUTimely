@@ -16,7 +16,7 @@ import styles from './style.module.scss'
  * Вспомогательная функция для перевода часов в количество пар
  * с вашим порогом 17 ч/пара и округлением до ближайшего целого.
  */
-function roundPairs(value: number, hoursPerPair = 2) {
+function roundPairs(value: number, hoursPerPair = 17) {
 	console.warn(value)
 	const raw = value / hoursPerPair
 	const fraction = raw - Math.floor(raw)

@@ -165,6 +165,7 @@ model Group {
   code           String?
   countStudents  String     @map("count_students")
   direction      String?
+  profile        String?
   formEducation  String?
   durationPeriod Int?
   yearEnrollment DateTime?  @map("year_enrollment")
@@ -224,13 +225,14 @@ model TimeSlot {
 }
 
 model SchedulePair {
-  id         String    @id @default(uuid())
-  halfYear   String // "2021H2"
-  weekType   WeekType?
-  numberWeek Int?
-  dayOfWeek  DayOfWeek
-  timeSlotId String
-  timeSlot   TimeSlot  @relation(fields: [timeSlotId], references: [id])
+  id              String    @id @default(uuid())
+  halfYear        String // "2021H2"
+  weekType        WeekType?
+  numberWeek      Int?
+  isStartEvenWeek Boolean?
+  dayOfWeek       DayOfWeek
+  timeSlotId      String
+  timeSlot        TimeSlot  @relation(fields: [timeSlotId], references: [id])
 
   studyPlanId String
   studyPlan   StudyPlan @relation(fields: [studyPlanId], references: [id])

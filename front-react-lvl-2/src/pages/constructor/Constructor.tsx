@@ -6,10 +6,10 @@ import { useEffect, useState } from 'react'
 import { v4 as uuidv4 } from 'uuid'
 
 import wishesService from '@/services/wishes/wishes.service'
-import GridComponent from './GridComponent'
 
 import usersService from '@/services/user/users.service'
 import { useLocation } from 'react-router-dom'
+import GridComponent from './GridComponent'
 import styles from './style.module.scss'
 
 /**
@@ -17,7 +17,6 @@ import styles from './style.module.scss'
  * с вашим порогом 17 ч/пара и округлением до ближайшего целого.
  */
 function roundPairs(value: number, hoursPerPair = 17) {
-	console.warn(value)
 	const raw = value / hoursPerPair
 	const fraction = raw - Math.floor(raw)
 	return fraction >= 0.5 ? Math.ceil(raw) : Math.floor(raw)
@@ -211,14 +210,23 @@ export function Constructor() {
 			disciplineService.getTeacherPairs('f59fa491-baa0-4af8-8588-4b213ffafc05'),
 	})
 
+	// const {
+	// 	data: disciplinesText,
+	// 	isLoading: isTextLoading,
+	// 	error: textError,
+	// } = useQuery({
+	// 	queryKey: ['text'],
+	// 	queryFn: () =>
+	// 		disciplineService.getTeacherText('f59fa491-baa0-4af8-8588-4b213ffafc05'),
+	// })
+
 	const {
-		data: disciplinesText,
-		isLoading: isTextLoading,
-		error: textError,
+		data: allTeacherTextWishes,
+		isLoading: isTextWishesLoading,
+		error: textWishesError,
 	} = useQuery({
-		queryKey: ['text'],
-		queryFn: () =>
-			disciplineService.getTeacherText('f59fa491-baa0-4af8-8588-4b213ffafc05'),
+		queryKey: ['allTeacherTextWishes'],
+		queryFn: () => disciplineService.getAllTeacherTextWishes(),
 	})
 
 	return (
@@ -299,30 +307,42 @@ export function Constructor() {
 					<div className='h-full overflow-auto p-4'>
 						{selectedDiscipline ? (
 							(() => {
-								// console.log(selectedDiscipline.disciplineName)
-								// console.log(disciplinesWishes)
-								const matchingWish = disciplinesWishes?.find(
-									wish => wish.discipline === selectedDiscipline.disciplineName
+								// Получаем всех преподавателей для выбранной дисциплины
+								const teachersForDiscipline = selectedDiscipline.teacherIds
+
+								const matchingWishes = allTeacherTextWishes?.filter(wish =>
+									teachersForDiscipline.includes(wish.teacherId)
 								)
-								// Если disciplinesText не является массивом, возвращаем null
-								const matchingText =
-									Array.isArray(disciplinesText) &&
-									disciplinesText.find(
-										text =>
-											text.discipline === selectedDiscipline.disciplineName
-									)
+
+								const matchingWish = disciplinesWishes?.find(
+									wish =>
+										wish.discipline === selectedDiscipline.disciplineName &&
+										wish.type.toLowerCase() === typeMap[selectedDiscipline.type]
+								)
 
 								return (
 									<div>
 										{matchingWish ? (
 											<div>
+												{/* Тип аудитории */}
 												<p>
 													<strong>Тип аудитории:</strong>{' '}
 													{matchingWish.audienceType?.title}
 												</p>
-												<p>
-													<strong>Пожелание:</strong> {disciplinesText}
-												</p>
+
+												{/* Пожелания для каждого преподавателя */}
+												{matchingWishes?.length > 0 ? (
+													matchingWishes.map((wish, index) => (
+														<div key={index}>
+															<p>
+																<strong>Пожелание преподавателя:</strong>{' '}
+																{wish.wishText}
+															</p>
+														</div>
+													))
+												) : (
+													<p>Пожелания для выбранной дисциплины не найдены.</p>
+												)}
 											</div>
 										) : (
 											<p>Пожелания для выбранной дисциплины не найдены.</p>

@@ -1,9 +1,7 @@
 import clsx from 'clsx'
 
 import styles from './AuthForm.module.scss'
-import { AuthToggle } from './AuthToggle'
 
-import { SocialMediaButtons } from './SocialMediaButtons'
 import { useAuthForm } from './useAuthForm'
 
 interface AuthFormProps {
@@ -58,10 +56,6 @@ export function AuthForm({ isLogin }: AuthFormProps) {
 					{isLoading ? 'Загрузка...' : isLogin ? 'Войти' : 'Зарегистрироваться'}
 				</button>
 			</div>
-
-			<SocialMediaButtons />
-
-			<AuthToggle isLogin={isLogin} />
 		</form>
 	)
 }

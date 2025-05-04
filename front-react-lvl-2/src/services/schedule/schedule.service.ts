@@ -163,6 +163,69 @@ class ScheduleService {
 		)
 		return resp.data
 	}
+
+	/**
+	 * Создаёт одну запись ScheduledPair
+	 */
+	async createScheduledPair(data: {
+		groupId: string
+		studyPlanId: string
+		halfYear: string
+		weekType: WeekType
+		dayOfWeek: string
+		timeSlotId: string
+		discipline: string
+		type: 'lecture' | 'practice' | 'lab'
+		isOnline?: boolean
+		roomId?: string
+		teacherIds?: string[]
+	}): Promise<ScheduledPair> {
+		try {
+			const resp = await instance.post<ScheduledPair>(`${this.BASE}/pair`, data)
+			return resp.data
+		} catch (error) {
+			console.error('Error creating ScheduledPair:', error)
+			throw error
+		}
+	}
+
+	/**
+	 * Обновляет существующую запись ScheduledPair по её id
+	 */
+	async updateScheduledPair(
+		id: string,
+		data: Partial<{
+			discipline: string
+			type: 'lecture' | 'practice' | 'lab'
+			isOnline: boolean
+			roomId?: string
+			teacherIds?: string[]
+			groupId?: string
+		}>
+	): Promise<ScheduledPair> {
+		try {
+			const resp = await instance.patch<ScheduledPair>(
+				`${this.BASE}/pair/${id}`,
+				data
+			)
+			return resp.data
+		} catch (error) {
+			console.error(`Error updating ScheduledPair ${id}:`, error)
+			throw error
+		}
+	}
+
+	/**
+	 * Удаляет одну запись ScheduledPair по её id
+	 */
+	async deleteScheduledPair(id: string): Promise<void> {
+		try {
+			await instance.delete(`${this.BASE}/pair/${id}`)
+		} catch (error) {
+			console.error(`Error deleting ScheduledPair ${id}:`, error)
+			throw error
+		}
+	}
 }
 
 export default new ScheduleService()

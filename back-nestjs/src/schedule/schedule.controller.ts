@@ -1,9 +1,20 @@
 import { WeekType } from '.prisma/client'
-import { Body, Controller, Get, Param, Post, Query } from '@nestjs/common'
+import {
+	Body,
+	Controller,
+	Delete,
+	Get,
+	Param,
+	Patch,
+	Post,
+	Query,
+} from '@nestjs/common'
 import {
 	BulkScheduleDistanceDto,
 	BulkScheduleDto,
 } from './dto/bulk-schedule.dto'
+import { CreateScheduledPairDto } from './dto/create-scheduled-pair.dto'
+import { UpdateScheduledPairDto } from './dto/update-scheduled-pair.dto'
 import { ScheduleService } from './schedule.service'
 
 @Controller('schedule')
@@ -74,5 +85,26 @@ export class ScheduleController {
 		console.log(groupId, halfYear)
 		const result = await this.service.findBusySelectedGroup(groupId, halfYear)
 		return result
+	}
+
+	/** Создать одну запись ScheduledPair */
+	@Post('pair')
+	async createPair(@Body() dto: CreateScheduledPairDto): Promise<any> {
+		return this.service.createScheduledPair(dto)
+	}
+
+	/** Обновить существующую запись ScheduledPair */
+	@Patch('pair/:id')
+	async updatePair(
+		@Param('id') id: string,
+		@Body() dto: UpdateScheduledPairDto
+	): Promise<any> {
+		return this.service.updateScheduledPair(id, dto)
+	}
+
+	/** Удалить запись ScheduledPair */
+	@Delete('pair/:id')
+	async deletePair(@Param('id') id: string): Promise<void> {
+		return this.service.deleteScheduledPair(id)
 	}
 }

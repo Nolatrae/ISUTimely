@@ -1,5 +1,10 @@
 import groupService from '@/services/group/group.service'
-import { DeleteOutlined, EditOutlined, EyeOutlined } from '@ant-design/icons'
+import {
+	DeleteOutlined,
+	EditOutlined,
+	EyeOutlined,
+	UndoOutlined,
+} from '@ant-design/icons'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import {
 	Button,
@@ -238,6 +243,15 @@ export function Group() {
 								</Link>
 							</Tooltip>
 						)}
+						{year && studyPlanId && (
+							<Tooltip title='Редактировать расписание'>
+								<Link
+									to={`/edit-constructor?groupId=${groupId}&studyPlanId=${studyPlanId}&yearOfAdmission=${year}`}
+								>
+									<Button type='link' icon={<UndoOutlined />} />
+								</Link>
+							</Tooltip>
+						)}
 						<Tooltip title='Редактировать'>
 							<Button
 								type='link'
@@ -292,9 +306,7 @@ export function Group() {
 		}
 
 		try {
-			await groupService.createReport(selectedGroupIds, semester, educationForm) // Используйте соответствующий метод для запроса отчёта
-
-			console.log(selectedGroupIds, educationForm, semester)
+			await groupService.createReport(selectedGroupIds, semester, educationForm)
 			notification.success({ message: 'Отчёт успешно создан' })
 		} catch (error) {
 			notification.error({ message: 'Ошибка при создании отчёта' })
@@ -309,11 +321,11 @@ export function Group() {
 		: null
 
 	const halfYearOptions = Array.from({ length: 10 }, (_, i) => {
-		const year = 2021 + Math.floor(i / 2) // Год будет увеличиваться каждые два элемента
-		const half = i % 2 === 0 ? 1 : 2 // 1 или 2 полугодие в зависимости от индекса
+		const year = 2021 + Math.floor(i / 2)
+		const half = i % 2 === 0 ? 1 : 2
 		return {
-			value: `${year}H${half}`, // Пример: 2021H1 или 2021H2
-			label: `${year} год — ${half} полугодие`, // Пример: 2021 год — 1 полугодие
+			value: `${year}H${half}`,
+			label: `${year} год — ${half} полугодие`,
 		}
 	})
 

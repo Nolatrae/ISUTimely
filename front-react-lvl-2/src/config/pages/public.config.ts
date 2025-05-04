@@ -16,6 +16,7 @@ class PublicPages {
 	PROFILE = '/'
 	PROFILE_ADMIN = '/profile'
 	CONSTRUCTOR = '/constructor'
+	EDITCONSTRUCTOR = '/edit-constructor'
 	SETPAIRSTOTEACHER = '/setpairs'
 	MERGEDISCIPLINES = '/merge-disciplines'
 	BUSYRESOURCE = '/busy-resource'

@@ -10,6 +10,7 @@ import RegisterPage from './auth/register/Register'
 import { Building } from './building/Building'
 import BusyResourcePage from './BusyResourcePage/BusyResourcePage'
 import { ZaoConstructor } from './Consrtuctor zao/Constructor'
+import BusyGroupPageConstructor from './constructor/busyMapGroup.tsx/BusyGroupPageConstructor'
 import { Constructor } from './constructor/Constructor'
 import { CreateEquipment } from './createEquipment/createEquipment'
 import { ManageAudiences } from './createRoom/ManageAudiences'
@@ -72,6 +73,10 @@ export const router = createBrowserRouter([
 					{ path: PUBLIC_PAGES.USERS, element: <UserPage /> }, // Для администратора
 					{ path: PUBLIC_PAGES.GROUPS, element: <Group /> }, // Для администратора
 					{ path: PUBLIC_PAGES.CONSTRUCTOR, element: <Constructor /> }, // Для администратора
+					{
+						path: PUBLIC_PAGES.EDITCONSTRUCTOR,
+						element: <BusyGroupPageConstructor />,
+					}, // Для администратора
 					{
 						path: PUBLIC_PAGES.SETPAIRSTOTEACHER,
 						element: <SetPairsBetweenTeachers />,

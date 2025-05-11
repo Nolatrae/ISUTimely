@@ -5,10 +5,14 @@ import {
 	Injectable,
 	NotFoundException,
 } from '@nestjs/common'
+import * as fs from 'fs'
+import * as path from 'path'
 import {
 	BulkScheduleDistanceDto,
 	BulkScheduleDto,
 } from './dto/bulk-schedule.dto'
+import { CreateScheduledPairDto } from './dto/create-scheduled-pair.dto'
+import { UpdateScheduledPairDto } from './dto/update-scheduled-pair.dto'
 
 export interface BusyMap {
 	even: Record<string, { rooms?: string[]; teachers?: string[] }>
@@ -318,8 +322,17 @@ export class ScheduleService {
 		})
 	}
 
-	/** Занятость кабинета: возвращаем карту BusyMap */
 	async findBusyRooms(audienceId: string, halfYear: string) {
+		const result = await this.findBusy(halfYear)
+		console.log(result)
+		const resultString = JSON.stringify(result, null, 2)
+
+		const filePath = path.join(__dirname, 'busyRoomsResult.txt')
+		console.log(filePath)
+
+		// Записываем данные в файл
+		fs.writeFileSync(filePath, resultString)
+
 		return this.prisma.schedulePair.findMany({
 			where: { halfYear, rooms: { some: { audienceId } } },
 			include: {
@@ -372,6 +385,61 @@ export class ScheduleService {
 		})
 	}
 
+	async findBusy(halfYear: string) {
+		return this.prisma.schedulePair.findMany({
+			where: { halfYear },
+			include: {
+				timeSlot: true,
+				groups: { include: { group: true } },
+				rooms: { include: { audience: true } },
+				teachers: {
+					include: {
+						teacher: {
+							include: { user: true, position: true, department: true },
+						},
+					},
+				},
+				assignment: {
+					include: {
+						teachers: { include: { user: true } },
+					},
+				},
+			},
+		})
+	}
+
+	async findBusySelectedGroup(groupId, halfYear: string) {
+		const result = await this.prisma.schedulePair.findMany({
+			where: {
+				halfYear: halfYear,
+				groups: {
+					some: {
+						groupId: groupId,
+					},
+				},
+			},
+			include: {
+				timeSlot: true,
+				groups: { include: { group: true } },
+				rooms: { include: { audience: true } },
+				teachers: {
+					include: {
+						teacher: {
+							include: { user: true, position: true, department: true },
+						},
+					},
+				},
+				assignment: {
+					include: {
+						teachers: { include: { user: true } },
+					},
+				},
+			},
+		})
+
+		return result
+	}
+
 	/** Преобразует русский день недели в enum DayOfWeek */
 	private mapDay(str: string): DayOfWeek {
 		const map: Record<string, DayOfWeek> = {
@@ -409,5 +477,189 @@ export class ScheduleService {
 			result[w][slotKey] = {}
 		}
 		return result
+	}
+
+	async createScheduledPair(dto: CreateScheduledPairDto): Promise<any> {
+		// 1) найти assignment
+		const assignment = await this.prisma.teacherDisciplineAssignment.findUnique(
+			{
+				where: {
+					discipline_type: {
+						discipline: dto.discipline,
+						type: dto.type,
+					},
+				},
+			}
+		)
+		if (!assignment) {
+			throw new NotFoundException(
+				`Assignment not found for ${dto.discipline} (${dto.type})`
+			)
+		}
+
+		// 2) распарсить timeSlotId вида "08:30 — 10:00"
+		const [start, end] = dto.timeSlotId.split(' — ')
+		const slotId = dto.timeSlotId
+
+		// 3) собрать connectOrCreate для timeSlot
+		const timeSlotConnect = {
+			connectOrCreate: {
+				where: { id: slotId },
+				create: {
+					id: slotId,
+					start,
+					end,
+					title: dto.timeSlotId,
+				},
+			},
+		}
+
+		// 4) собрать payload для создания пары
+		const data: any = {
+			halfYear: dto.halfYear,
+			weekType: dto.weekType,
+			dayOfWeek: this.mapDay(dto.dayOfWeek), // переводим в DayOfWeek
+			timeSlot: timeSlotConnect,
+			studyPlan: { connect: { id: dto.studyPlanId } },
+			assignment: { connect: { id: assignment.id } },
+			isOnline: dto.isOnline ?? false,
+			groups: {
+				create: [{ group: { connect: { id: dto.groupId } } }],
+			},
+		}
+
+		if (dto.roomId) {
+			data.rooms = {
+				create: [{ audience: { connect: { id: dto.roomId } } }],
+			}
+		}
+		if (dto.teacherIds?.length) {
+			data.teachers = {
+				create: dto.teacherIds.map(tid => ({
+					teacher: { connect: { id: tid } },
+				})),
+			}
+		}
+
+		return this.prisma.schedulePair.create({
+			data,
+			include: {
+				timeSlot: true,
+				groups: { include: { group: true } },
+				teachers: { include: { teacher: { include: { user: true } } } },
+				rooms: { include: { audience: true } },
+				assignment: { include: { teachers: { include: { user: true } } } },
+			},
+		})
+	}
+
+	/**
+	 * Обновить одну пару в расписании
+	 */
+	async updateScheduledPair(
+		id: string,
+		dto: UpdateScheduledPairDto
+	): Promise<any> {
+		// Проверяем, что такая пара есть
+		const existing = await this.prisma.schedulePair.findUnique({
+			where: { id },
+			include: {
+				assignment: true,
+				teachers: true,
+				groups: true,
+				rooms: true,
+			},
+		})
+		if (!existing) {
+			throw new NotFoundException(`ScheduledPair ${id} not found`)
+		}
+
+		const data: any = {}
+
+		// Если изменили дисциплину или тип — обновляем assignment
+		if (dto.discipline || dto.type) {
+			const assignment =
+				await this.prisma.teacherDisciplineAssignment.findUnique({
+					where: {
+						discipline_type: {
+							discipline: dto.discipline ?? existing.assignment.discipline,
+							type: dto.type ?? existing.assignment.type,
+						},
+					},
+				})
+			if (!assignment) {
+				throw new NotFoundException(
+					`Assignment not found for ${dto.discipline}/${dto.type}`
+				)
+			}
+			data.assignment = { connect: { id: assignment.id } }
+		}
+
+		if (dto.isOnline !== undefined) {
+			data.isOnline = dto.isOnline
+		}
+
+		// Пересоздаем связи с преподавателями
+		if (dto.teacherIds) {
+			await this.prisma.schedulePairTeacher.deleteMany({
+				where: { pairId: id },
+			})
+			data.teachers = {
+				create: dto.teacherIds.map(tid => ({
+					teacher: { connect: { id: tid } },
+				})),
+			}
+		}
+
+		// Пересоздаем связь с группой, если нужно
+		if (dto.groupId) {
+			await this.prisma.schedulePairGroup.deleteMany({ where: { pairId: id } })
+			data.groups = {
+				create: [{ group: { connect: { id: dto.groupId } } }],
+			}
+		}
+
+		// Обновляем аудиторию
+		if (dto.roomId !== undefined) {
+			// удаляем старые
+			await this.prisma.schedulePairRoom.deleteMany({ where: { pairId: id } })
+			if (dto.roomId) {
+				data.rooms = {
+					create: [{ audience: { connect: { id: dto.roomId } } }],
+				}
+			}
+		}
+
+		return this.prisma.schedulePair.update({
+			where: { id },
+			data,
+			include: {
+				timeSlot: true,
+				groups: { include: { group: true } },
+				teachers: { include: { teacher: { include: { user: true } } } },
+				rooms: { include: { audience: true } },
+				assignment: { include: { teachers: { include: { user: true } } } },
+			},
+		})
+	}
+
+	/**
+	 * Удалить одну пару из расписания
+	 */
+	async deleteScheduledPair(id: string): Promise<void> {
+		const existing = await this.prisma.schedulePair.findUnique({
+			where: { id },
+		})
+		if (!existing) {
+			throw new NotFoundException(`ScheduledPair ${id} not found`)
+		}
+
+		// Сначала удаляем все связи, чтобы не было FK-ошибок
+		await this.prisma.schedulePairTeacher.deleteMany({ where: { pairId: id } })
+		await this.prisma.schedulePairGroup.deleteMany({ where: { pairId: id } })
+		await this.prisma.schedulePairRoom.deleteMany({ where: { pairId: id } })
+
+		// А теперь удаляем саму пару
+		await this.prisma.schedulePair.delete({ where: { id } })
 	}
 }

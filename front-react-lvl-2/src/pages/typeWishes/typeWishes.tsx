@@ -179,6 +179,7 @@ const TeacherDisciplineWish = () => {
 					dataSource={dataSource}
 					pagination={false}
 					loading={isDisciplineLoading}
+					bordered
 				/>
 				<Input.TextArea
 					rows={4}

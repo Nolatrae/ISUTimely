@@ -5,6 +5,7 @@ import { useQuery } from '@tanstack/react-query'
 import {
 	Button,
 	Checkbox,
+	DatePicker,
 	Form,
 	Input,
 	InputNumber,
@@ -122,9 +123,19 @@ const StudyPlanWizard = () => {
 		if (!fileId) return
 		console.log(values)
 		try {
+			// форматируем даты начала семестров в ISO
+			const { semesterStartDates, ...rest } = values
+			const formattedDates = semesterStartDates.map((d: any) =>
+				d.format('YYYY-MM-DD')
+			)
+			const payload = {
+				...rest,
+				semesterStartDates: formattedDates,
+			}
+
 			const response = await axios.post(
 				`http://localhost:4200/api/parser/parse/${fileId}`,
-				values
+				payload
 			)
 			console.log('Ответ сервера:', response.data.data)
 
@@ -133,25 +144,25 @@ const StudyPlanWizard = () => {
 			// setCurrentStep(2);
 			setTimeout(() => {
 				setCurrentStep(2)
-			}, 500) // ✅ Добавляем 1 сек задержку перед переходом на следующий шаг
+			}, 500)
 		} catch (error) {
 			message.error('Ошибка обработки файла')
 			console.error(error)
 		}
 	}
 
-	const navigate = useNavigate() // ✅ Создаём навигатор
+	const navigate = useNavigate()
 
 	const resetAndStartNew = () => {
 		setFileId(null)
 		setFileUrl(null)
 		setParsedData([])
 		setSelectedFile(null)
-		setCurrentStep(0) // ✅ Сбрасываем всё и начинаем заново
+		setCurrentStep(0)
 	}
 
 	const goToConstructor = () => {
-		navigate('/constructor') // ✅ Переход на страницу конструктора
+		navigate('/constructor')
 	}
 
 	return (
@@ -208,32 +219,47 @@ const StudyPlanWizard = () => {
 										<Form layout='vertical' onFinish={handleParse}>
 											<Form.Item
 												name='title'
-												label='Название учебного плана'
+												label='Название учебного плана (для отображения в списке)'
 												rules={[{ required: true }]}
 											>
-												<Input placeholder='Введите название' />
+												<Input placeholder='Введите название плана' />
 											</Form.Item>
+
 											{[1, 2, 3, 4].map(num => (
-												<div key={num}>
+												<div key={num} className='flex gap-2'>
 													<Form.Item
 														name={`start_${num}`}
-														label={`Начало ${num} семестра`}
+														label={`Начало ${num}-го семестра`}
 														rules={[{ required: true }]}
+														style={{ flex: 1 }}
 													>
 														<InputNumber style={{ width: '100%' }} />
 													</Form.Item>
 													<Form.Item
 														name={`end_${num}`}
-														label={`Конец ${num} семестра`}
+														label={`конец ${num}-го семестра`}
 														rules={[{ required: true }]}
+														style={{ flex: 1 }}
 													>
 														<InputNumber style={{ width: '100%' }} />
 													</Form.Item>
 												</div>
 											))}
+
+											{[...Array(8)].map((_, idx) => (
+												<Form.Item
+													key={idx}
+													name={['semesterStartDates', idx]}
+													label={`Дата начала ${idx + 1}-го семестра`}
+													rules={[{ required: true, message: 'Выберите дату' }]}
+												>
+													<DatePicker style={{ width: '100%' }} />
+												</Form.Item>
+											))}
+
 											<Form.Item
 												name='groups'
-												label='Группы'
+												label='Выбор групп для плана'
 												rules={[
 													{
 														required: true,
@@ -243,7 +269,7 @@ const StudyPlanWizard = () => {
 											>
 												<Select
 													mode='multiple'
-													placeholder='Выберите группы'
+													placeholder='Группы'
 													loading={isGroupLoading}
 												>
 													{groupsData?.map(group => (
@@ -253,6 +279,7 @@ const StudyPlanWizard = () => {
 													))}
 												</Select>
 											</Form.Item>
+
 											<Button type='primary' htmlType='submit'>
 												Отправить на обработку
 											</Button>
@@ -261,13 +288,13 @@ const StudyPlanWizard = () => {
 
 									<Splitter.Panel className='ml-4'>
 										<h3>Загруженный файл</h3>
-										<iframe
+										{/* <iframe
 											src={`https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(
 												fakeFileUrl
 											)}`}
 											width='100%'
 											height='500px'
-										/>
+										/> */}
 									</Splitter.Panel>
 								</Splitter>
 							</>
@@ -369,14 +396,14 @@ const StudyPlanWizard = () => {
 								</Splitter.Panel>
 								<Splitter.Panel className='ml-4'>
 									<div>
-										<iframe
+										{/* <iframe
 											src={`https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(
 												fakeFileUrl
 											)}`}
 											width='100%'
 											height='900px'
 											style={{ border: '1px solid #ddd' }}
-										/>
+										/> */}
 									</div>
 								</Splitter.Panel>
 							</Splitter>

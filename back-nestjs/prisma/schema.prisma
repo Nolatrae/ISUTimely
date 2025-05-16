@@ -137,26 +137,21 @@ model UploadedFiles {
 }
 
 model StudyPlan {
-  id           String         @id @default(cuid())
+  id           String              @id @default(cuid())
   title        String
   disciplines  Discipline[]
   groups       Group[]
-  SemesterWeek SemesterWeek[]
+  semesters    StudyPlanSemester[]
   SchedulePair SchedulePair[]
 }
 
-model SemesterWeek {
+model StudyPlanSemester {
   id          String    @id @default(cuid())
-  week_1      Int
-  week_2      Int
-  week_3      Int
-  week_4      Int
-  week_5      Int
-  week_6      Int
-  week_7      Int
-  week_8      Int
-  studyPlanId String
   studyPlan   StudyPlan @relation(fields: [studyPlanId], references: [id])
+  studyPlanId String
+  semester    Int /// 1, 2 и т.д.
+  startDate   DateTime /// дата начала семестра
+  weeksCount  Int
 }
 
 model Group {
@@ -172,7 +167,7 @@ model Group {
   studyPlanId    String?
   studyPlan      StudyPlan? @relation(fields: [studyPlanId], references: [id])
 
-  disciplineAssignments DisciplineGroupAssignment[] @relation("GroupAssignments") // Обратная связь
+  disciplineAssignments DisciplineGroupAssignment[] @relation("GroupAssignments")
   SchedulePairGroup     SchedulePairGroup[]
 
   @@index([studyPlanId], map: "study_plan_idx")
@@ -225,14 +220,13 @@ model TimeSlot {
 }
 
 model SchedulePair {
-  id              String    @id @default(uuid())
-  halfYear        String // "2021H2"
-  weekType        WeekType?
-  numberWeek      Int?
-  isStartEvenWeek Boolean?
-  dayOfWeek       DayOfWeek
-  timeSlotId      String
-  timeSlot        TimeSlot  @relation(fields: [timeSlotId], references: [id])
+  id         String    @id @default(uuid())
+  halfYear   String // "2021H2"
+  weekType   WeekType?
+  numberWeek Int?
+  dayOfWeek  DayOfWeek
+  timeSlotId String
+  timeSlot   TimeSlot  @relation(fields: [timeSlotId], references: [id])
 
   studyPlanId String
   studyPlan   StudyPlan @relation(fields: [studyPlanId], references: [id])
@@ -242,11 +236,14 @@ model SchedulePair {
 
   isOnline Boolean @default(false)
 
-  groups       SchedulePairGroup[]
-  teachers     SchedulePairTeacher[]
-  rooms        SchedulePairRoom[]
-  Discipline   Discipline?           @relation(fields: [disciplineId], references: [id])
-  disciplineId String?
+  groups         SchedulePairGroup[]
+  teachers       SchedulePairTeacher[]
+  rooms          SchedulePairRoom[]
+  Discipline     Discipline?           @relation(fields: [disciplineId], references: [id])
+  disciplineId   String?
+  academicWeekId String?
+
+  academicWeek AcademicWeek? @relation(fields: [academicWeekId], references: [id])
 
   @@index([halfYear, weekType, dayOfWeek, timeSlotId])
   @@index([halfYear, numberWeek, dayOfWeek, timeSlotId])
@@ -280,4 +277,19 @@ model SchedulePairRoom {
   audience Audience     @relation(fields: [audienceId], references: [id])
 
   @@id([pairId, audienceId])
+}
+
+/// 52 учебные недели в году, от первого понедельника сентября
+model AcademicWeek {
+  id           String   @id @default(cuid())
+  academicYear String // e.g. "2024/2025"
+  weekNumber   Int // 1…52
+  startDate    DateTime // понедельник
+  endDate      DateTime // воскресенье (= startDate + 6 дней)
+  weekType     WeekType // ODD/EVEN
+
+  startWeekNumber Int?
+  endWeekNumber   Int?
+
+  SchedulePair SchedulePair[]
 }

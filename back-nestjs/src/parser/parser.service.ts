@@ -138,19 +138,28 @@ export class ParserService {
 			dto.end_4
 		)
 
-		await this.prisma.semesterWeek.create({
-			data: {
-				studyPlan: { connect: { id: studyPlanId } },
-				week_1: extractWeek(countWeeks[0]),
-				week_2: extractWeek(countWeeks[1]),
-				week_3: extractWeek(countWeeks[2]),
-				week_4: extractWeek(countWeeks[3]),
-				week_5: extractWeek(countWeeks[4]),
-				week_6: extractWeek(countWeeks[5]),
-				week_7: extractWeek(countWeeks[6]),
-				week_8: extractWeek(countWeeks[7]),
-			},
-		})
+		if (
+			!Array.isArray(dto.semesterStartDates) ||
+			dto.semesterStartDates.length !== countWeeks.length
+		) {
+			throw new Error(
+				`Нужно передать semesterStartDates длины ${countWeeks.length}, а получили ${dto.semesterStartDates?.length}`
+			)
+		}
+
+		await Promise.all(
+			countWeeks.map((weekString, idx) => {
+				const startDateStr = dto.semesterStartDates[idx]
+				return this.prisma.studyPlanSemester.create({
+					data: {
+						studyPlan: { connect: { id: studyPlanId } },
+						semester: idx + 1,
+						startDate: new Date(startDateStr),
+						weeksCount: extractWeek(weekString),
+					},
+				})
+			})
+		)
 
 		// 3️⃣ Создаём дисциплины
 		const createdDisciplines = []

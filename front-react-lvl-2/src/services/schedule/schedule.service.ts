@@ -14,10 +14,19 @@ export interface BulkScheduleDto {
 	studyPlanId: string
 	groupId: string
 	halfYear: string // e.g. '2023H2'
+	semester: number
 	schedule: {
 		even: Record<string, ScheduleSlotDto>
 		odd: Record<string, ScheduleSlotDto>
 	}
+}
+
+export interface AcademicWeekDto {
+	id: string
+	weekNumber: number
+	startDate: string // ISO-строка
+	endDate: string
+	weekType: WeekType
 }
 
 export interface ScheduledPair {
@@ -51,6 +60,7 @@ class ScheduleService {
 
 	async bulkCreate(data: BulkScheduleDto): Promise<void> {
 		try {
+			console.log(data)
 			await instance.post(`${this.BASE}`, data)
 		} catch (error) {
 			console.error('Error saving schedule bulk:', error)
@@ -116,27 +126,25 @@ class ScheduleService {
 		}
 	}
 
-	async getBusyTeachers(teacherId: string, halfYear: string): Promise<BusyMap> {
-		try {
-			const resp = await instance.get<BusyMap>(
-				`${this.BASE}/teacher/${teacherId}/busy`,
-				{ params: { halfYear } }
-			)
-			return resp.data
-		} catch (error) {
-			console.error(`Error fetching busy teachers for ${teacherId}:`, error)
-			throw error
-		}
+	async getBusyTeachers(
+		teacherId: string,
+		academicWeekId: string
+	): Promise<any> {
+		const resp = await instance.get<any>(
+			`${this.BASE}/teacher/${teacherId}/busy`,
+			{ params: { academicWeekId } }
+		)
+		return resp.data
 	}
 
 	// Возвращает полные записи ScheduledPair для кабинета
 	async getBusyRoomRecords(
 		audienceId: string,
-		halfYear: string
-	): Promise<ScheduledPair[]> {
-		const resp = await instance.get<ScheduledPair[]>(
-			`schedule/room/${audienceId}/busy`,
-			{ params: { halfYear } }
+		academicWeekId: string
+	): Promise<any> {
+		const resp = await instance.get<any>(
+			`${this.BASE}/room/${audienceId}/busy`,
+			{ params: { academicWeekId } }
 		)
 		return resp.data
 	}
@@ -144,23 +152,22 @@ class ScheduleService {
 	// Возвращает полные записи ScheduledPair для преподавателя
 	async getBusyTeacherRecords(
 		teacherId: string,
-		halfYear: string
+		academicWeekId: string
 	): Promise<ScheduledPair[]> {
 		const resp = await instance.get<ScheduledPair[]>(
 			`schedule/teacher/${teacherId}/busy`,
-			{ params: { halfYear } }
+			{ params: { academicWeekId } }
 		)
 		return resp.data
 	}
 
 	async getBusyGroupRecords(
 		groupId: string,
-		halfYear: string
-	): Promise<ScheduledPair[]> {
-		const resp = await instance.get<ScheduledPair[]>(
-			`schedule/group/${groupId}/busy`,
-			{ params: { halfYear } }
-		)
+		academicWeekId: string
+	): Promise<any> {
+		const resp = await instance.get<any>(`${this.BASE}/group/${groupId}/busy`, {
+			params: { academicWeekId },
+		})
 		return resp.data
 	}
 
@@ -223,6 +230,21 @@ class ScheduleService {
 			await instance.delete(`${this.BASE}/pair/${id}`)
 		} catch (error) {
 			console.error(`Error deleting ScheduledPair ${id}:`, error)
+			throw error
+		}
+	}
+
+	/**
+	 * Получить список академических недель по коду полугодия (e.g. '2021H2')
+	 */
+	async getWeeksByHalfYear(halfYear: string): Promise<AcademicWeekDto[]> {
+		try {
+			const resp = await instance.get<AcademicWeekDto[]>(`${this.BASE}/weeks`, {
+				params: { halfYear },
+			})
+			return resp.data
+		} catch (error) {
+			console.error(`Error fetching academic weeks for ${halfYear}:`, error)
 			throw error
 		}
 	}

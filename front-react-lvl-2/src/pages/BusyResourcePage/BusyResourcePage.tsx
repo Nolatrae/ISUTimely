@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query'
-import { Button, Popover, Segmented, Select, Space, Spin, Table } from 'antd'
+import { Segmented, Select, Space, Spin, Table } from 'antd'
 import dayjs from 'dayjs'
 import React, { useEffect, useMemo, useState } from 'react'
 
@@ -11,7 +11,6 @@ import type {
 } from '@/services/schedule/schedule.service'
 import scheduleService from '@/services/schedule/schedule.service'
 import usersService from '@/services/user/users.service'
-import { EyeOutlined } from '@ant-design/icons'
 import { daysOfWeek, hoursOfDay } from '../constructor/const'
 
 interface BusyResourcePageProps {
@@ -196,14 +195,6 @@ const BusyResourcePage: React.FC<BusyResourcePageProps> = ({
 	return (
 		<>
 			<Space wrap size='large' className='mb-4'>
-				<Popover
-					content={<span>Настройки будут позже</span>}
-					title='Опции'
-					trigger='click'
-				>
-					<Button icon={<EyeOutlined />} />
-				</Popover>
-
 				<Segmented
 					options={[
 						{ label: 'Преподаватель', value: 'teacher' },

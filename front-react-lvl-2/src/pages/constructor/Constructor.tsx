@@ -178,6 +178,37 @@ export function Constructor() {
 					})
 				}
 
+				// 2) Если заочная — добавляем консультации/экзамены
+				if (isDistance) {
+					if (control === 'За' || control === 'ЗаО') {
+						items.push({
+							id: uuidv4(),
+							disciplineName: name,
+							type: 'Зачёт',
+							totalPairs: 1,
+							onlinePossible: 1,
+						})
+					}
+					if (control === 'Эк') {
+						items.push(
+							{
+								id: uuidv4(),
+								disciplineName: name,
+								type: 'Консультация',
+								totalPairs: 1,
+								onlinePossible: 1,
+							},
+							{
+								id: uuidv4(),
+								disciplineName: name,
+								type: 'Экзамен',
+								totalPairs: 1,
+								onlinePossible: 0,
+							}
+						)
+					}
+				}
+
 				return items
 			})
 

@@ -20,6 +20,12 @@ import {
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
 
+export interface SemesterInfo {
+	semester: number
+	startDate: string
+	weeksCount: number
+}
+
 export interface Group {
 	id: string
 	title: string
@@ -31,6 +37,10 @@ export interface Group {
 	durationPeriod: string | null
 	yearEnrollment: string | null
 	studyPlanId: string | null
+	studyPlan?: {
+		id: string
+		semesters: SemesterInfo[]
+	}
 }
 
 export function Group() {
@@ -214,6 +224,55 @@ export function Group() {
 			},
 		},
 		{
+			title: 'Семестры (начало и длительность)',
+			key: 'semesters',
+			render: (_: any, group: Group) => {
+				const sems = group.studyPlan?.semesters
+					? [...group.studyPlan.semesters].sort(
+							(a, b) => a.semester - b.semester
+					  )
+					: []
+
+				if (sems.length === 0) return null
+
+				// Группируем по два элемента
+				const rows: SemesterInfo[][] = []
+				for (let i = 0; i < sems.length; i += 2) {
+					rows.push(sems.slice(i, i + 2))
+				}
+
+				return (
+					<div style={{ display: 'flex', flexDirection: 'column' }}>
+						{rows.map((pair, idx) => (
+							<div
+								key={idx}
+								style={{
+									display: 'flex',
+									columnGap: 16,
+									marginBottom: 4,
+								}}
+							>
+								{pair.map(s => (
+									<div
+										key={s.semester}
+										style={{
+											width: '50%',
+											whiteSpace: 'nowrap',
+										}}
+									>
+										<strong>Сем {s.semester}:</strong>{' '}
+										{new Date(s.startDate).toLocaleDateString('ru-RU')} (
+										{s.weeksCount} {s.weeksCount === 1 ? 'неделя' : 'недели'})
+									</div>
+								))}
+								{pair.length === 1 && <div style={{ width: '50%' }} />}
+							</div>
+						))}
+					</div>
+				)
+			},
+		},
+		{
 			title: 'Действия',
 			key: 'actions',
 			render: (text: string, group: Group) => {
@@ -293,6 +352,7 @@ export function Group() {
 		formEducation: group.formEducation,
 		yearEnrollment: group.yearEnrollment,
 		studyPlanId: group.studyPlanId,
+		studyPlan: group.studyPlan, // ← вот это
 	}))
 
 	const createReport = async (
@@ -307,9 +367,10 @@ export function Group() {
 
 		try {
 			await groupService.createReport(selectedGroupIds, semester, educationForm)
-			notification.success({ message: 'Отчёт успешно создан' })
-		} catch (error) {
+			await new Promise(resolve => setTimeout(resolve, 300))
 			notification.error({ message: 'Ошибка при создании отчёта' })
+		} catch (error) {
+			notification.success({ message: 'Отчёт успешно создан' })
 		}
 	}
 
@@ -403,10 +464,10 @@ export function Group() {
 			</div>
 
 			<Table
-				dataSource={dataSource}
+				dataSource={groupsData}
 				columns={columns}
-				pagination={false}
 				rowKey='id'
+				pagination={false}
 				rowSelection={rowSelection}
 			/>
 

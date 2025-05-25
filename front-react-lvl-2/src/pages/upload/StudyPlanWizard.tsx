@@ -24,6 +24,11 @@ import { CSSTransition, TransitionGroup } from 'react-transition-group'
 import { Group } from '../groups/Group'
 import './StudyPlanWizard.css' // Подключаем стили для анимации
 
+interface StudyPlan {
+	id: string
+	title: string
+}
+
 const { Step } = Steps
 
 const StudyPlanWizard = () => {
@@ -33,7 +38,8 @@ const StudyPlanWizard = () => {
 	const [parsedData, setParsedData] = useState([])
 	const [selectedFile, setSelectedFile] = useState<File | null>(null)
 	const [selectedSemester, setSelectedSemester] = useState<number>(1)
-	const [studyPlanId, setStudyPlanId] = useState()
+	const [studyPlan, setStudyPlan] = useState<StudyPlan | null>(null)
+
 	const [studyMode, setStudyMode] = useState<boolean>(false)
 
 	const uploadUrl = studyMode
@@ -46,12 +52,12 @@ const StudyPlanWizard = () => {
 		isLoading,
 		error,
 	} = useQuery({
-		queryKey: ['disciplines', studyPlanId],
+		queryKey: ['disciplines', studyPlan?.id],
 		queryFn: () =>
-			studyPlanId?.data?.id
-				? disciplineService.getDisciplines('cm8q9b3y10003668gthnior9q')
-				: [],
-		enabled: !!studyPlanId, // ✅ Запрос выполняется только если `fileId` существует
+			studyPlan?.id
+				? disciplineService.getDisciplines(studyPlan.id)
+				: Promise.resolve([]),
+		enabled: Boolean(studyPlan?.id),
 	})
 
 	const {
@@ -96,7 +102,7 @@ const StudyPlanWizard = () => {
 				setCurrentStep(1)
 			}, 500) // ✅ Добавляем 1 сек задержку перед переходом на следующий шаг
 			// setFileId(response.data.file.id);
-			// setCurrentStep(1);
+			// setCurrentStep(1);cm8q9b3y10003668gthnior9q
 		} catch (error) {
 			message.error('Ошибка загрузки файла')
 		}
@@ -139,7 +145,7 @@ const StudyPlanWizard = () => {
 			)
 			console.log('Ответ сервера:', response.data.data)
 
-			setStudyPlanId(response?.data)
+			setStudyPlan(response.data.data)
 			message.success('Файл успешно обработан!')
 			// setCurrentStep(2);
 			setTimeout(() => {
@@ -320,9 +326,9 @@ const StudyPlanWizard = () => {
 											<Button type='default' onClick={resetAndStartNew}>
 												Создать новый учебный план
 											</Button>
-											<Button type='primary' onClick={goToConstructor}>
+											{/* <Button type='primary' onClick={goToConstructor}>
 												Перейти в конструктор
-											</Button>
+											</Button> */}
 										</div>
 										<Segmented
 											options={[1, 2, 3, 4, 5, 6, 7, 8].map(num => ({

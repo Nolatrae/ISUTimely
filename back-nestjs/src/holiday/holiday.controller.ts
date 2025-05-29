@@ -6,9 +6,24 @@ import { HolidayService } from './holiday.service'
 export class HolidayController {
 	constructor(private readonly holidayService: HolidayService) {}
 
-	@Post()
+	@Post('one-time')
 	async addHoliday(@Body() dto: any) {
 		return this.holidayService.createHoliday(dto)
+	}
+
+	/** Постоянное мероприятие (еженедельно в один и тот же день недели) */
+	@Post('recurring')
+	async addRecurringHoliday(
+		@Body()
+		dto: {
+			startDate: string
+			endDate: string
+			name: string
+			roomId?: string
+			timeSlots: string[]
+		}
+	) {
+		return this.holidayService.createRecurringHoliday(dto)
 	}
 
 	@Get()

@@ -72,6 +72,46 @@ export class HolidayService {
 		)
 		return pairs
 	}
+	0
+	/**
+	 * Создаёт постоянный (еженедельный) праздник:
+	 * начиная с startDate и до endDate включительно,
+	 * каждую неделю в тот же день недели, что и startDate.
+	 */
+	async createRecurringHoliday(dto: {
+		startDate: string
+		endDate: string
+		name: string
+		roomId?: string
+		timeSlots: string[]
+	}): Promise<any[]> {
+		const { startDate, endDate, name, roomId, timeSlots } = dto
+
+		// Парсим ISO-строки в Date
+		const start = new Date(startDate)
+		const finish = new Date(endDate)
+
+		// Собираем все SchedulePair в один плоский массив
+		const allPairs: any[] = []
+
+		// Делать шаг +7 дней, пока current <= finish
+		for (
+			let current = new Date(start);
+			current <= finish;
+			current.setDate(current.getDate() + 7)
+		) {
+			// вызываем вашу логику разового создания
+			const pairs = await this.createHoliday({
+				date: current.toISOString(),
+				name,
+				roomId,
+				timeSlots,
+			})
+			allPairs.push(...pairs)
+		}
+
+		return allPairs
+	}
 
 	async getAllHolidays() {
 		return this.prisma.schedulePair.findMany({

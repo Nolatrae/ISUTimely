@@ -7,6 +7,7 @@ import {
 	Input,
 	message,
 	Modal,
+	Segmented,
 	Select,
 	Space,
 	Table,
@@ -14,7 +15,10 @@ import {
 import dayjs, { Dayjs } from 'dayjs'
 import React, { useMemo, useState } from 'react'
 
-import holidayService, { HolidayDto } from '@/services/holiday/holiday.service'
+import holidayService, {
+	HolidayDto,
+	RecurringHolidayDto,
+} from '@/services/holiday/holiday.service'
 import audienceService from '@/services/room/audience.service'
 
 import isSameOrAfter from 'dayjs/plugin/isSameOrAfter'
@@ -72,6 +76,9 @@ interface HolidayPairDto {
 export const AddHolidayPage: React.FC = () => {
 	const qc = useQueryClient()
 	const [modalOpen, setModalOpen] = useState(false)
+	const [eventType, setEventType] = useState<'one-time' | 'recurring'>(
+		'one-time'
+	)
 	const [form] = Form.useForm()
 	const [dateRange, setDateRange] = useState<[Dayjs | null, Dayjs | null]>([
 		null,
@@ -82,14 +89,20 @@ export const AddHolidayPage: React.FC = () => {
 		queryKey: ['rooms'],
 		queryFn: () => audienceService.getAll(),
 	})
-
 	const mutation = useMutation({
-		mutationFn: (dto: HolidayDto) => holidayService.createHoliday(dto),
+		mutationFn: async (dto: HolidayDto | RecurringHolidayDto) => {
+			if (eventType === 'one-time') {
+				await holidayService.createOneTimeHoliday(dto as HolidayDto)
+			} else {
+				await holidayService.createRecurringHoliday(dto as RecurringHolidayDto)
+			}
+		},
 		onSuccess: () => {
 			message.success('Праздник успешно сохранён')
 			qc.invalidateQueries({ queryKey: ['holidays'] })
 			setModalOpen(false)
 			form.resetFields()
+			setEventType('one-time')
 		},
 		onError: () => {
 			message.error('Ошибка при сохранении праздника')
@@ -102,14 +115,33 @@ export const AddHolidayPage: React.FC = () => {
 	})
 
 	const onFinish = (values: any) => {
-		const date = values.date
-		const dto: HolidayDto = {
-			date: (date as dayjs.Dayjs).toISOString(),
-			name: values.name,
-			roomId: values.roomId,
-			timeSlots: values.timeSlots,
+		const { name, roomId, timeSlots } = values
+
+		if (eventType === 'one-time') {
+			const date = values.date as Dayjs
+			const dto: HolidayDto = {
+				date: date.toISOString(),
+				name,
+				roomId,
+				timeSlots,
+			}
+			mutation.mutate(dto)
+		} else {
+			const [start, end] = values.dateRange as [Dayjs, Dayjs]
+			const jsDay = start.day() // 0=вс, 1=пн...
+			const weekDays = ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT']
+			const dayOfWeek = weekDays[jsDay]
+
+			const dto: RecurringHolidayDto = {
+				startDate: start.toISOString(),
+				endDate: end.toISOString(),
+				dayOfWeek,
+				name,
+				roomId,
+				timeSlots,
+			}
+			mutation.mutate(dto)
 		}
-		mutation.mutate(dto)
 	}
 
 	// Функция для получения "реальной" даты праздника из academicWeek и dayOfWeek
@@ -208,19 +240,44 @@ export const AddHolidayPage: React.FC = () => {
 				footer={null}
 				destroyOnClose
 			>
+				<Segmented
+					options={[
+						{ label: 'Разовое', value: 'one-time' },
+						{ label: 'Постоянное', value: 'recurring' },
+					]}
+					value={eventType}
+					onChange={val => setEventType(val as 'one-time' | 'recurring')}
+					className='mb-4'
+				/>
 				<Form
 					form={form}
 					layout='vertical'
 					onFinish={onFinish}
-					initialValues={{ timeSlots: [] }}
+					initialValues={{
+						timeSlots: [] /*, dateRange: [null, null] (необязательно)*/,
+					}}
 				>
-					<Form.Item
-						name='date'
-						label='Дата праздника'
-						rules={[{ required: true, message: 'Выберите дату' }]}
-					>
-						<DatePicker style={{ width: '100%' }} />
-					</Form.Item>
+					{eventType === 'one-time' ? (
+						<Form.Item
+							name='date'
+							label='Дата праздника'
+							rules={[{ required: true, message: 'Выберите дату' }]}
+						>
+							<DatePicker style={{ width: '100%' }} format={dateFormat} />
+						</Form.Item>
+					) : (
+						<Form.Item
+							name='dateRange'
+							label='Период праздника'
+							rules={[{ required: true, message: 'Выберите период' }]}
+						>
+							<DatePicker.RangePicker
+								style={{ width: '100%' }}
+								format={dateFormat}
+								allowEmpty={[false, false]}
+							/>
+						</Form.Item>
+					)}
 
 					<Form.Item
 						name='name'
@@ -254,7 +311,6 @@ export const AddHolidayPage: React.FC = () => {
 							options={hoursOfDay.map(h => ({ value: h, label: h }))}
 						/>
 					</Form.Item>
-
 					<Form.Item>
 						<Button
 							type='primary'

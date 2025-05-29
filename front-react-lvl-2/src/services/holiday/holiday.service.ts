@@ -1,21 +1,37 @@
 import { instance } from '@/api/axios'
 
-export interface HolidayDto {
-	date: string // одна дата
+// Новый DTO для постоянного
+export interface RecurringHolidayDto {
+	startDate: string // ISO-строка начала
+	endDate: string // ISO-строка конца
+	dayOfWeek: string // 'MON' | 'TUE' | … | 'SUN'
 	name: string
 	roomId?: string
-	timeSlots: string[] // новые таймслоты (массив строк)
+	timeSlots: string[]
+}
+
+// Существующий DTO остаётся для разового
+export interface HolidayDto {
+	date: string // ISO-строка
+	name: string
+	roomId?: string
+	timeSlots: string[]
 }
 
 class HolidayService {
 	private BASE = 'holiday'
 
-	/** Создать праздник */
-	async createHoliday(dto: HolidayDto): Promise<void> {
-		await instance.post(`${this.BASE}`, dto)
+	/** Разовое событие */
+	async createOneTimeHoliday(dto: HolidayDto): Promise<void> {
+		await instance.post(`${this.BASE}/one-time`, dto)
 	}
 
-	/** Получить все праздники */
+	/** Постоянное: каждую неделю в указанный день */
+	async createRecurringHoliday(dto: RecurringHolidayDto): Promise<void> {
+		await instance.post(`${this.BASE}/recurring`, dto)
+	}
+
+	/** Можно оставить для чтения всех праздников */
 	async getHolidays(): Promise<HolidayDto[]> {
 		const { data } = await instance.get<HolidayDto[]>(`${this.BASE}`)
 		return data

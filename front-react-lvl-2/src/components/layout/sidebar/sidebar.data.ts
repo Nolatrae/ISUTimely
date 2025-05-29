@@ -7,8 +7,8 @@ import {
 	GraduationCap,
 	Landmark,
 	Layout,
-	Merge,
 	NotebookPen,
+	PartyPopper,
 	Share2,
 	ToyBrick,
 	User,
@@ -65,11 +65,7 @@ export const SIDEBAR_DATA: ISidebarItem[] = [
 		label: 'Типы кабинетов',
 		link: PUBLIC_PAGES.AUDIENCETYPES,
 	},
-	{
-		icon: User,
-		label: 'Профиль',
-		link: PUBLIC_PAGES.PROFILE_ADMIN,
-	},
+
 	{
 		icon: ToyBrick,
 		label: 'Конструктор',
@@ -80,15 +76,25 @@ export const SIDEBAR_DATA: ISidebarItem[] = [
 		label: 'Распределение пар',
 		link: PUBLIC_PAGES.SETPAIRSTOTEACHER,
 	},
-	{
-		icon: Merge,
-		label: 'Объединение пар',
-		link: PUBLIC_PAGES.MERGEDISCIPLINES,
-	},
+	// {
+	// 	icon: Merge,
+	// 	label: 'Объединение пар',
+	// 	link: PUBLIC_PAGES.MERGEDISCIPLINES,
+	// },
 	{
 		icon: CalendarX,
 		label: 'Занятость ресурсов',
 		link: PUBLIC_PAGES.BUSYRESOURCE,
+	},
+	{
+		icon: PartyPopper,
+		label: 'Праздники',
+		link: PUBLIC_PAGES.HOLIDAY,
+	},
+	{
+		icon: User,
+		label: 'Профиль',
+		link: PUBLIC_PAGES.PROFILE_ADMIN,
 	},
 ]
 
